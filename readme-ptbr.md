@@ -1,0 +1,130 @@
+# Projeto de Avaliação Técnica Ambev
+
+## Visão Geral do Projeto
+Este projeto é uma API para gerenciamento de vendas, desenvolvida em .NET 8 utilizando PostgreSQL, MediatR, AutoMapper e arquitetura DDD. Foi criada como parte de uma avaliação técnica para uma vaga de desenvolvedor sênior.
+
+## Funcionalidades
+- Criar, consultar, atualizar e excluir registros de vendas
+- Regras de negócio aplicadas aos itens da venda:
+  - 4–9 itens: 10% de desconto
+  - 10–20 itens: 20% de desconto
+  - Mais de 20 itens: não permitido
+- Validação de entrada com FluentValidation (mensagens em inglês)
+- Formato de resposta da API padronizado (ApiResponse)
+- Testes unitários cobrindo todos os cenários das regras de negócio
+
+## Tecnologias
+- .NET 8.0
+- PostgreSQL + EF Core
+- MediatR (CQRS)
+- AutoMapper
+- xUnit + NSubstitute + Bogus (testes)
+- FluentValidation
+- Arquitetura: Domain-Driven Design (DDD)
+
+## Configuração do Projeto
+
+Este guia irá ajudá-lo a configurar rapidamente o projeto no seu ambiente local.
+
+---
+
+### Pré-requisitos
+
+Antes de começar, certifique-se de ter as seguintes ferramentas instaladas:
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) ou [Visual Studio Code](https://code.visualstudio.com/)
+- [PostgreSQL](https://www.postgresql.org/download/) (recomenda-se PgAdmin incluso na instalação)
+- [Git](https://git-scm.com/downloads)
+
+---
+
+### Configuração Inicial
+
+#### 1. Clone o Repositório
+
+```bash
+git clone https://github.com/danielfv91/omnia-developer-evaluation-danielvasconcelos.git
+cd omnia-developer-evaluation-danielvasconcelos
+```
+
+#### 2. Configure o Banco de Dados PostgreSQL
+
+- Abra o PgAdmin e crie um novo banco de dados com o nome `DeveloperEvaluation`.
+
+#### 3. Atualize a String de Conexão
+
+No arquivo `appsettings.json` localizado em `src/Ambev.DeveloperEvaluation.WebApi/appsettings.json`, atualize a string de conexão com suas credenciais do PostgreSQL:
+
+```json
+"ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Port=5432;Database=DeveloperEvaluation;User Id=postgres;Password=sua_senha;"
+}
+```
+
+#### 4. Aplicar Migrations do EF Core
+
+No **Package Manager Console** do Visual Studio, execute:
+
+```powershell
+Update-Database -Project Ambev.DeveloperEvaluation.ORM -StartupProject Ambev.DeveloperEvaluation.WebApi
+```
+
+Isso criará automaticamente as tabelas necessárias no seu banco de dados PostgreSQL.
+
+---
+
+### Executando a Aplicação
+
+- No Visual Studio, defina o projeto `Ambev.DeveloperEvaluation.WebApi` como projeto de inicialização e pressione **F5**.
+
+- A aplicação será iniciada via HTTPS (`https://localhost:<porta>`), abrindo automaticamente a interface Swagger.
+
+### Problema com Certificado HTTPS
+
+Se ocorrer o erro **"Sua conexão não é particular"** (`ERR_CERT_INVALID`), execute os seguintes comandos no prompt (como administrador):
+
+```bash
+dotnet dev-certs https --clean
+dotnet dev-certs https --trust
+```
+
+Reinicie o Visual Studio e execute novamente.
+
+---
+
+## Executando os Testes
+
+Você pode rodar os testes diretamente pelo Visual Studio ou pelo terminal:
+
+```bash
+dotnet test
+```
+
+---
+
+## Estrutura do Projeto
+```
+src/
+├── Application       → Regras de negócio (MediatR Handlers, Commands)
+├── Domain            → Entidades e Interfaces (DDD)
+├── ORM               → Contexto EF Core e Repositórios
+├── WebApi            → Controllers, Requests, Responses
+├── Common/Crosscut   → Exceções, Helpers, Validação
+tests/
+└── Unit              → Testes unitários (xUnit, NSubstitute, Bogus)
+```
+
+## Padrão de Commits
+Commits semânticos em português:
+- `feat:` nova funcionalidade
+- `fix:` correção de erro
+- `test:` testes
+- `chore:` ajustes menores
+
+## Link do Repositório
+[github.com/danielfv91/omnia-developer-evaluation-danielvasconcelos](https://github.com/danielfv91/omnia-developer-evaluation-danielvasconcelos)
+
+---
+
+**Tudo pronto para começar!**

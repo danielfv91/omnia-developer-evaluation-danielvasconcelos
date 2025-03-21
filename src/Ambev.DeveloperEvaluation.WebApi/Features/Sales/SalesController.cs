@@ -12,6 +12,8 @@ using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSale;
 using Ambev.DeveloperEvaluation.Application.Sales.GetSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSales;
+using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSale;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales
 {
@@ -148,6 +150,58 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales
                 Success = true,
                 Message = "Sales retrieved successfully",
                 Data = response
+            });
+        }
+
+        /// <summary>
+        /// Updates an existing sale by ID
+        /// </summary>
+        /// <param name="request">The updated sale request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The updated sale details</returns>
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(ApiResponseWithData<UpdateSaleResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateSale([FromRoute] Guid id, [FromBody] UpdateSaleRequest request, CancellationToken cancellationToken)
+        {
+            if (id != request.Id)
+                return BadRequest(new ApiResponse
+                {
+                    Success = false,
+                    Message = "ID in URL and request body do not match."
+                });
+
+            var validator = new UpdateSaleRequestValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(new ApiResponse
+                {
+                    Success = false,
+                    Message = "Validation failed.",
+                    Errors = validationResult.Errors.Select(f => (ValidationErrorDetail)f)
+                });
+            }
+
+            var command = _mapper.Map<UpdateSaleCommand>(request);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(new ApiResponse
+                {
+                    Success = false,
+                    Message = "Sale not found."
+                });
+            }
+
+            return Ok(new ApiResponseWithData<UpdateSaleResponse>
+            {
+                Success = true,
+                Message = "Sale updated successfully",
+                Data = _mapper.Map<UpdateSaleResponse>(result)
             });
         }
 

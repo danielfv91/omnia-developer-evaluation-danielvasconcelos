@@ -40,7 +40,30 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
 
         public async Task UpdateAsync(Sale sale)
         {
-            _context.Sales.Update(sale);
+            var existingSale = await _context.Sales
+                .Include(s => s.Items)
+                .FirstOrDefaultAsync(s => s.Id == sale.Id);
+
+            if (existingSale == null)
+                return;
+
+            _context.SaleItems.RemoveRange(existingSale.Items);
+
+            foreach (var item in sale.Items)
+            {
+                item.Id = Guid.NewGuid();
+                item.SaleId = sale.Id;
+                _context.SaleItems.Add(item);
+            }
+
+            existingSale.SaleNumber = sale.SaleNumber;
+            existingSale.SaleDate = sale.SaleDate;
+            existingSale.CustomerId = sale.CustomerId;
+            existingSale.CustomerName = sale.CustomerName;
+            existingSale.Branch = sale.Branch;
+            existingSale.TotalAmount = sale.TotalAmount;
+            existingSale.IsCancelled = sale.IsCancelled;
+
             await _context.SaveChangesAsync();
         }
 

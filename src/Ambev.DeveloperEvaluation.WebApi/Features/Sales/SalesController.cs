@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using Ambev.DeveloperEvaluation.Common.Validation;
+using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSale;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales
 {
@@ -73,17 +75,43 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales
         /// Retrieves a sale by its ID
         /// </summary>
         /// <param name="id">The unique identifier of the sale</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The sale details if found</returns>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ApiResponseWithData<string>), StatusCodes.Status200OK)]
-        public IActionResult GetSaleById([FromRoute] Guid id)
+        [ProducesResponseType(typeof(ApiResponseWithData<GetSaleResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetSaleById([FromRoute] Guid id, CancellationToken cancellationToken)
         {
-            // Endpoint a ser implementado
-            return Ok(new ApiResponseWithData<string>
+            var request = new GetSaleRequest { Id = id };
+            var validator = new GetSaleRequestValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                return BadRequest(new ApiResponse
+                {
+                    Success = false,
+                    Message = "Validation failed",
+                    Errors = validationResult.Errors.Select(e => (ValidationErrorDetail)e)
+                });
+
+            var query = _mapper.Map<GetSaleQuery>(request);
+            var result = await _mediator.Send(query, cancellationToken);
+
+            if (result == null)
+                return NotFound(new ApiResponse
+                {
+                    Success = false,
+                    Message = "Sale not found"
+                });
+
+            var response = _mapper.Map<GetSaleResponse>(result);
+
+            return Ok(new ApiResponseWithData<GetSaleResponse>
             {
                 Success = true,
-                Message = "Sale retrieved successfully (endpoint to be implemented)",
-                Data = $"Sale with ID {id}"
+                Message = "Sale retrieved successfully",
+                Data = response
             });
         }
     }

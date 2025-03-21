@@ -9,11 +9,9 @@ namespace Ambev.DeveloperEvaluation.WebApi.Mappings
     {
         public CreateSaleRequestProfile()
         {
-            // WebApi → Application
             CreateMap<CreateSaleRequest, CreateSaleCommand>();
             CreateMap<CreateSaleItemRequest, CreateSaleItemDto>();
 
-            // Application → WebApi
             CreateMap<CreateSaleResult, CreateSaleResponse>();
         }
     }

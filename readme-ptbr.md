@@ -1,37 +1,60 @@
+# Projeto de Avaliação Técnica Ambev
 
-# Projeto Avaliação para Desenvolvedor Ambev
+## Visão Geral do Projeto
+Este projeto é uma API para gerenciamento de vendas, desenvolvida em .NET 8 utilizando PostgreSQL, MediatR, AutoMapper e arquitetura DDD. Foi criada como parte de uma avaliação técnica para uma vaga de desenvolvedor sênior.
 
-Este guia irá ajudá-lo a configurar rapidamente o projeto em seu ambiente local.
+## Funcionalidades
+- Criar, consultar, atualizar e excluir registros de vendas
+- Regras de negócio aplicadas aos itens da venda:
+  - 4–9 itens: 10% de desconto
+  - 10–20 itens: 20% de desconto
+  - Mais de 20 itens: não permitido
+- Validação de entrada com FluentValidation (mensagens em inglês)
+- Formato de resposta da API padronizado (ApiResponse)
+- Testes unitários cobrindo todos os cenários das regras de negócio
+
+## Tecnologias
+- .NET 8.0
+- PostgreSQL + EF Core
+- MediatR (CQRS)
+- AutoMapper
+- xUnit + NSubstitute + Bogus (testes)
+- FluentValidation
+- Arquitetura: Domain-Driven Design (DDD)
+
+## Configuração do Projeto
+
+Este guia irá ajudá-lo a configurar rapidamente o projeto no seu ambiente local.
 
 ---
 
-## Pré-requisitos
+### Pré-requisitos
 
-Antes de começar, verifique se você possui as seguintes ferramentas instaladas:
+Antes de começar, certifique-se de ter as seguintes ferramentas instaladas:
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- [Visual Studio 2022](https://visualstudio.microsoft.com/pt-br/downloads/) ou [Visual Studio Code](https://code.visualstudio.com/)
-- [PostgreSQL](https://www.postgresql.org/download/) (recomendado PgAdmin incluso na instalação)
+- [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) ou [Visual Studio Code](https://code.visualstudio.com/)
+- [PostgreSQL](https://www.postgresql.org/download/) (recomenda-se PgAdmin incluso na instalação)
 - [Git](https://git-scm.com/downloads)
 
 ---
 
-## Configuração Inicial
+### Configuração Inicial
 
-### 1. Clonar o repositório
+#### 1. Clone o Repositório
 
 ```bash
-git clone https://github.com/seu-usuario/seu-repositorio.git
-cd seu-repositorio
+git clone https://github.com/danielfv91/omnia-developer-evaluation-danielvasconcelos.git
+cd omnia-developer-evaluation-danielvasconcelos
 ```
 
-### 2. Configurar o banco de dados PostgreSQL
+#### 2. Configure o Banco de Dados PostgreSQL
 
-- Abra o PgAdmin e crie um banco de dados com o nome `DeveloperEvaluation`.
+- Abra o PgAdmin e crie um novo banco de dados com o nome `DeveloperEvaluation`.
 
-### 3. Atualizar a Connection String
+#### 3. Atualize a String de Conexão
 
-No arquivo `appsettings.json` localizado em `src/Ambev.DeveloperEvaluation.WebApi/appsettings.json`, atualize a connection string com suas credenciais do PostgreSQL:
+No arquivo `appsettings.json` localizado em `src/Ambev.DeveloperEvaluation.WebApi/appsettings.json`, atualize a string de conexão com suas credenciais do PostgreSQL:
 
 ```json
 "ConnectionStrings": {
@@ -39,7 +62,7 @@ No arquivo `appsettings.json` localizado em `src/Ambev.DeveloperEvaluation.WebAp
 }
 ```
 
-### 4. Aplicar Migrations do EF Core
+#### 4. Aplicar Migrations do EF Core
 
 No **Package Manager Console** do Visual Studio, execute:
 
@@ -47,19 +70,19 @@ No **Package Manager Console** do Visual Studio, execute:
 Update-Database -Project Ambev.DeveloperEvaluation.ORM -StartupProject Ambev.DeveloperEvaluation.WebApi
 ```
 
-Isso criará automaticamente as tabelas necessárias no seu banco PostgreSQL.
+Isso criará automaticamente as tabelas necessárias no seu banco de dados PostgreSQL.
 
 ---
 
-## Executando a Aplicação
+### Executando a Aplicação
 
 - No Visual Studio, defina o projeto `Ambev.DeveloperEvaluation.WebApi` como projeto de inicialização e pressione **F5**.
 
-- A aplicação será iniciada usando HTTPS (`https://localhost:<porta>`), abrindo automaticamente a interface do Swagger para interação com a API.
+- A aplicação será iniciada via HTTPS (`https://localhost:<porta>`), abrindo automaticamente a interface Swagger.
 
-### Problema com o Certificado HTTPS
+### Problema com Certificado HTTPS
 
-Se ao executar a aplicação você encontrar o erro **"Sua conexão não é particular"** (`ERR_CERT_INVALID`), execute os comandos abaixo no Prompt (como administrador):
+Se ocorrer o erro **"Sua conexão não é particular"** (`ERR_CERT_INVALID`), execute os seguintes comandos no prompt (como administrador):
 
 ```bash
 dotnet dev-certs https --clean
@@ -72,7 +95,7 @@ Reinicie o Visual Studio e execute novamente.
 
 ## Executando os Testes
 
-Você pode executar os testes diretamente pelo Visual Studio ou através do terminal:
+Você pode rodar os testes diretamente pelo Visual Studio ou pelo terminal:
 
 ```bash
 dotnet test
@@ -80,36 +103,28 @@ dotnet test
 
 ---
 
-## Estrutura do projeto
-
+## Estrutura do Projeto
 ```
 src/
-├── Ambev.DeveloperEvaluation.Application
-├── Ambev.DeveloperEvaluation.Common
-├── Ambev.DeveloperEvaluation.Crosscutting
-├── Ambev.DeveloperEvaluation.Domain
-├── Ambev.DeveloperEvaluation.Infrastructure
-├── Ambev.DeveloperEvaluation.IoC
-├── Ambev.DeveloperEvaluation.ORM
-└── Ambev.DeveloperEvaluation.WebApi
-
+├── Application       → Regras de negócio (MediatR Handlers, Commands)
+├── Domain            → Entidades e Interfaces (DDD)
+├── ORM               → Contexto EF Core e Repositórios
+├── WebApi            → Controllers, Requests, Responses
+├── Common/Crosscut   → Exceções, Helpers, Validação
 tests/
-├── Ambev.DeveloperEvaluation.Unit
-├── Ambev.DeveloperEvaluation.Integration
-└── Ambev.DeveloperEvaluation.Functional
+└── Unit              → Testes unitários (xUnit, NSubstitute, Bogus)
 ```
 
+## Padrão de Commits
+Commits semânticos em português:
+- `feat:` nova funcionalidade
+- `fix:` correção de erro
+- `test:` testes
+- `chore:` ajustes menores
+
+## Link do Repositório
+[github.com/danielfv91/omnia-developer-evaluation-danielvasconcelos](https://github.com/danielfv91/omnia-developer-evaluation-danielvasconcelos)
+
 ---
 
-## Tecnologias Utilizadas
-
-- .NET 8
-- Entity Framework Core
-- PostgreSQL
-- xUnit (testes)
-- MediatR, AutoMapper, Rebus
-- Git (controle de versão)
-
----
-
-**Agora você está pronto para começar!**
+**Tudo pronto para começar!**

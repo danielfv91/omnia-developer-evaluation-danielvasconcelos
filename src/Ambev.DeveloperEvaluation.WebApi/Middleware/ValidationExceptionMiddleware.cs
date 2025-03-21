@@ -1,4 +1,5 @@
-﻿using Ambev.DeveloperEvaluation.Common.Validation;
+﻿using Ambev.DeveloperEvaluation.Common.Exceptions;
+using Ambev.DeveloperEvaluation.Common.Validation;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using FluentValidation;
 using System.Text.Json;
@@ -24,6 +25,10 @@ namespace Ambev.DeveloperEvaluation.WebApi.Middleware
             {
                 await HandleValidationExceptionAsync(context, ex);
             }
+            catch (BusinessException ex)
+            {
+                await HandleBusinessExceptionAsync(context, ex);
+            }
         }
 
         private static Task HandleValidationExceptionAsync(HttpContext context, ValidationException exception)
@@ -46,5 +51,32 @@ namespace Ambev.DeveloperEvaluation.WebApi.Middleware
 
             return context.Response.WriteAsync(JsonSerializer.Serialize(response, jsonOptions));
         }
+        private static Task HandleBusinessExceptionAsync(HttpContext context, BusinessException exception)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = "Business rule violated",
+                Errors = new[]
+                {
+            new ValidationErrorDetail
+            {
+                Error = "BusinessException",
+                Detail = exception.Message
+            }
+        }
+            };
+
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            return context.Response.WriteAsync(JsonSerializer.Serialize(response, jsonOptions));
+        }
+
     }
 }

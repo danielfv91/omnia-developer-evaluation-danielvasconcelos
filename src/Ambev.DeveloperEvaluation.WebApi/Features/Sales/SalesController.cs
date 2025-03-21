@@ -10,6 +10,8 @@ using Ambev.DeveloperEvaluation.WebApi.Common;
 using Ambev.DeveloperEvaluation.Common.Validation;
 using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSale;
+using Ambev.DeveloperEvaluation.Application.Sales.GetSales;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSales;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales
 {
@@ -114,5 +116,40 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales
                 Data = response
             });
         }
+
+        /// <summary>
+        /// Retrieves paginated list of sales
+        /// </summary>
+        /// <param name="request">Query parameters</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Paginated list of sales</returns>
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponseWithData<GetSalesResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetSales([FromQuery] GetSalesRequest request, CancellationToken cancellationToken)
+        {
+            var validator = new GetSalesRequestValidator();
+            var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+            if (!validationResult.IsValid)
+                return BadRequest(new ApiResponse
+                {
+                    Success = false,
+                    Message = "Validation failed",
+                    Errors = validationResult.Errors.Select(e => (ValidationErrorDetail)e)
+                });
+
+            var query = _mapper.Map<GetSalesQuery>(request);
+            var result = await _mediator.Send(query, cancellationToken);
+            var response = _mapper.Map<GetSalesResponse>(result);
+
+            return Ok(new ApiResponseWithData<GetSalesResponse>
+            {
+                Success = true,
+                Message = "Sales retrieved successfully",
+                Data = response
+            });
+        }
+
     }
 }

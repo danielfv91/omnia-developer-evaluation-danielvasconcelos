@@ -14,5 +14,7 @@ namespace Ambev.DeveloperEvaluation.Domain.Repositories
         Task AddAsync(Sale sale);
         Task UpdateAsync(Sale sale);
         Task DeleteAsync(Guid id);
+        Task<(List<Sale> Sales, int TotalItems)> GetSalesPagedAsync(
+            int page, int size, string order, string branch, DateTime? minDate, DateTime? maxDate);
     }
 }

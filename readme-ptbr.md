@@ -1,7 +1,17 @@
 # Projeto de Avaliação Técnica Ambev
 
 ## Visão Geral do Projeto
-Este projeto é uma API para gerenciamento de vendas, desenvolvida em .NET 8 utilizando PostgreSQL, MediatR, AutoMapper e arquitetura DDD. Foi criada como parte de uma avaliação técnica para uma vaga de desenvolvedor sênior.
+Este projeto é uma API para gerenciamento de vendas, desenvolvida em .NET 8 utilizando PostgreSQL, MediatR, AutoMapper e arquitetura DDD. Foi criada como parte de uma avaliação técnica para uma vaga de desenvolvedor sênior/especialista .NET.
+
+## Requisitos Atendidos
+
+A API implementa integralmente as funcionalidades requeridas:
+
+- [x] CRUD completo de vendas (Sales)
+- [x] Aplicação das regras de desconto conforme quantidade de itens
+- [x] Todos os campos solicitados disponíveis nas operações (SaleNumber, Customer, Branch, Produtos, Quantities, etc.)
+- [x] Validação de dados com mensagens padronizadas em inglês
+- [x] Eventos de domínio implementados e logados no console (SaleCreated, SaleModified, SaleCancelled)
 
 ## Funcionalidades
 - Criar, consultar, atualizar e excluir registros de vendas

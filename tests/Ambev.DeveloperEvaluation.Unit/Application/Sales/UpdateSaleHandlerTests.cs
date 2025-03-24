@@ -1,4 +1,5 @@
-﻿using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
+﻿using Ambev.DeveloperEvaluation.Application.Events;
+using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
@@ -13,6 +14,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
     {
         private readonly ISaleRepository _saleRepository = Substitute.For<ISaleRepository>();
         private readonly IMapper _mapper;
+        private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
 
         public UpdateSaleHandlerTests()
         {
@@ -62,7 +64,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
             }
             };
 
-            var handler = new UpdateSaleHandler(_saleRepository, _mapper);
+            var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
 
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
@@ -119,7 +121,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
             }
             };
 
-            var handler = new UpdateSaleHandler(_saleRepository, _mapper);
+            var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
 
             // Act & Assert
             await Assert.ThrowsAsync<BusinessException>(() => handler.Handle(command, CancellationToken.None));
@@ -154,7 +156,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         }
             };
 
-            var handler = new UpdateSaleHandler(_saleRepository, _mapper);
+            var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
 
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
@@ -191,7 +193,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         }
             };
 
-            var handler = new UpdateSaleHandler(_saleRepository, _mapper);
+            var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
 
             var result = await handler.Handle(command, CancellationToken.None);
 
@@ -228,7 +230,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         }
             };
 
-            var handler = new UpdateSaleHandler(_saleRepository, _mapper);
+            var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
 
             var result = await handler.Handle(command, CancellationToken.None);
 

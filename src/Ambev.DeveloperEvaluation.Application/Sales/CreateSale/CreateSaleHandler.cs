@@ -1,4 +1,6 @@
-﻿using Ambev.DeveloperEvaluation.Domain.Entities;
+﻿using Ambev.DeveloperEvaluation.Application.Events;
+using Ambev.DeveloperEvaluation.Application.Sales.Events;
+using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using MediatR;
@@ -11,11 +13,13 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
     {
         private readonly ISaleRepository _saleRepository;
         private readonly IMapper _mapper;
+        private readonly IEventPublisher _eventPublisher;
 
-        public CreateSaleHandler(ISaleRepository saleRepository, IMapper mapper)
+        public CreateSaleHandler(ISaleRepository saleRepository, IMapper mapper, IEventPublisher eventPublisher)
         {
             _saleRepository = saleRepository;
             _mapper = mapper;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<CreateSaleResult> Handle(CreateSaleCommand request, CancellationToken cancellationToken)
@@ -35,6 +39,16 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
             sale.TotalAmount = sale.Items.Sum(i => i.TotalItemAmount);
 
             await _saleRepository.AddAsync(sale);
+
+            var saleCreatedEvent = new SaleCreatedEvent
+            {
+                SaleId = sale.Id,
+                SaleNumber = sale.SaleNumber,
+                CustomerName = sale.CustomerName,
+                TotalAmount = sale.TotalAmount
+            };
+
+            await _eventPublisher.PublishAsync(saleCreatedEvent);
 
             return new CreateSaleResult
             {

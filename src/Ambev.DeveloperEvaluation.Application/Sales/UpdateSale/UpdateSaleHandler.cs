@@ -1,4 +1,6 @@
-﻿using Ambev.DeveloperEvaluation.Common.Exceptions;
+﻿using Ambev.DeveloperEvaluation.Application.Events;
+using Ambev.DeveloperEvaluation.Application.Sales.Events;
+using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
@@ -10,11 +12,13 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
     {
         private readonly ISaleRepository _saleRepository;
         private readonly IMapper _mapper;
+        private readonly IEventPublisher _eventPublisher;
 
-        public UpdateSaleHandler(ISaleRepository saleRepository, IMapper mapper)
+        public UpdateSaleHandler(ISaleRepository saleRepository, IMapper mapper, IEventPublisher eventPublisher)
         {
             _saleRepository = saleRepository;
             _mapper = mapper;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<UpdateSaleResult> Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
@@ -52,6 +56,15 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
             sale.TotalAmount = sale.Items.Sum(i => i.TotalItemAmount);
 
             await _saleRepository.UpdateAsync(sale);
+
+            var saleModifiedEvent = new SaleModifiedEvent
+            {
+                SaleId = sale.Id,
+                SaleNumber = sale.SaleNumber,
+                TotalAmount = sale.TotalAmount
+            };
+
+            await _eventPublisher.PublishAsync(saleModifiedEvent);
 
             return _mapper.Map<UpdateSaleResult>(sale);
         }

@@ -14,6 +14,15 @@ This API fully implements the required functionalities:
 - [x] Data validation with standardized English messages
 - [x] Domain events implemented and logged to the console (SaleCreated, SaleModified, SaleCancelled)
 
+### Authentication
+
+JWT authentication is fully functional in the project.
+
+- The endpoint `/auth` returns a token after validating user credentials
+- To protect any route (e.g., `/sales`), simply add the `[Authorize]` attribute
+
+> Note: An AutoMapper configuration issue was found in the original project template and has been fixed to ensure correct JWT token generation.
+
 ## Features
 - Create, retrieve, update, and delete sales records
 - Business rules applied on sales items:

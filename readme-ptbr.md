@@ -13,6 +13,15 @@ A API implementa integralmente as funcionalidades requeridas:
 - [x] Validação de dados com mensagens padronizadas em inglês
 - [x] Eventos de domínio implementados e logados no console (SaleCreated, SaleModified, SaleCancelled)
 
+### Autenticação
+
+A autenticação JWT está funcional no projeto.
+
+- O endpoint `/auth` retorna um token após validação das credenciais do usuário
+- Para proteger rotas (ex: `/sales`), basta adicionar o atributo `[Authorize]`
+
+> Obs: Foi identificado um problema de configuração do AutoMapper no template original, que foi corrigido para garantir a geração correta do token JWT.
+
 ## Funcionalidades
 - Criar, consultar, atualizar e excluir registros de vendas
 - Regras de negócio aplicadas aos itens da venda:

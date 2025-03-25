@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Ambev.DeveloperEvaluation.Application.Events;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
@@ -16,13 +17,16 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         private readonly ISaleRepository _saleRepository;
         private readonly IMapper _mapper;
         private readonly CreateSaleHandler _handler;
+        private readonly IEventPublisher _eventPublisher;
 
         public CreateSaleHandlerTests()
         {
             _saleRepository = Substitute.For<ISaleRepository>();
             _mapper = Substitute.For<IMapper>();
-            _handler = new CreateSaleHandler(_saleRepository, _mapper);
+            _eventPublisher = Substitute.For<IEventPublisher>();
+            _handler = new CreateSaleHandler(_saleRepository, _mapper, _eventPublisher);
         }
+
 
         [Fact]
         public async Task Handle_Should_CreateSaleSuccessfully()

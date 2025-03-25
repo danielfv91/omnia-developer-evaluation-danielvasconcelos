@@ -2,7 +2,17 @@
 # Ambev Developer Evaluation Project
 
 ## Project Overview
-This project is an API for managing sales, developed in .NET 8 using PostgreSQL, MediatR, AutoMapper, and DDD architecture. It was created as part of a technical evaluation for a senior developer position.
+This project is an API for managing sales, developed in .NET 8 using PostgreSQL, MediatR, AutoMapper, and DDD architecture. It was created as part of a technical evaluation for a senior/specialist .NET developer position.
+
+## Requirements — Fully Met
+
+This API fully implements the required functionalities:
+
+- [x] Complete CRUD for sales (Sales)
+- [x] Business rules applied for item quantity-based discounts
+- [x] All required fields present in operations (SaleNumber, Customer, Branch, Products, Quantities, etc.)
+- [x] Data validation with standardized English messages
+- [x] Domain events implemented and logged to the console (SaleCreated, SaleModified, SaleCancelled)
 
 ## Features
 - Create, retrieve, update, and delete sales records

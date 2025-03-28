@@ -62,6 +62,30 @@ Direct mapping of the evaluation requirements to the implemented features:
 
 ---
 
-## 5. Conclusion
+## 5. Automatic Request Validation (Improvement over Template)
+
+In the original template, request validation was done manually in each controller using:
+
+```csharp
+var validator = new SomeRequestValidator();
+var validationResult = await validator.ValidateAsync(request, cancellationToken);
+```
+
+To improve maintainability and scalability, this project adopts **automatic validation using FluentValidation’s pipeline integration**. This removes validation logic from the controllers and centralizes it at the framework level.
+
+**What was added:**
+- Configuration in `Program.cs`:
+  ```csharp
+  builder.Services.AddFluentValidationAutoValidation();
+  builder.Services.AddValidatorsFromAssembly(typeof(ApplicationLayer).Assembly);
+  builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+  ```
+- All validators are automatically detected and executed by the pipeline.
+
+**Benefit:** All incoming requests are validated before reaching the controller, and any validation failure is handled by the `ValidationExceptionMiddleware`, providing a consistent and clean error response.
+
+---
+
+## 6. Conclusion
 
 The project is clean, scalable, and easy to maintain. The architectural patterns enable future extensions (e.g., message brokers), reuse of business logic, and reliable automated tests.

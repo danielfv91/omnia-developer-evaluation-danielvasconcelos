@@ -1,121 +1,88 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Events;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
-using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
+using Ambev.DeveloperEvaluation.Application.Sales.Events;
+using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Unit.Application.Sales.Builders;
 using AutoMapper;
 using NSubstitute;
 using Xunit;
-using Ambev.DeveloperEvaluation.Application.Sales.Events;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales;
-
-public class EventPublishingTests
+namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
 {
-    [Fact]
-    public async Task CreateSale_Should_PublishSaleCreatedEvent()
+    public class EventPublishingTests
     {
-        var repository = Substitute.For<ISaleRepository>();
-        var publisher = Substitute.For<IEventPublisher>();
+        private readonly ISaleRepository _repository = Substitute.For<ISaleRepository>();
+        private readonly IEventPublisher _publisher = Substitute.For<IEventPublisher>();
 
-        var config = new MapperConfiguration(cfg =>
+        [Fact]
+        public async Task CreateSale_Should_PublishSaleCreatedEvent()
         {
-            cfg.CreateMap<CreateSaleItemDto, SaleItem>();
-            cfg.CreateMap<CreateSaleCommand, Sale>();
-            cfg.CreateMap<Sale, CreateSaleResult>();
-        });
-
-        var mapper = config.CreateMapper();
-
-        var handler = new CreateSaleHandler(repository, mapper, publisher);
-
-        var command = new CreateSaleCommand
-        {
-            SaleNumber = 2001,
-            SaleDate = DateTime.UtcNow,
-            CustomerId = Guid.NewGuid(),
-            CustomerName = "Cliente A",
-            Branch = "Filial A",
-            Items = new List<CreateSaleItemDto>
+            // Arrange
+            var mapper = new MapperConfiguration(cfg =>
             {
-                new CreateSaleItemDto
-                {
-                    ProductId = Guid.NewGuid(),
-                    ProductName = "Produto X",
-                    Quantity = 5,
-                    UnitPrice = 10
-                }
-            }
-        };
+                cfg.CreateMap<CreateSaleItemDto, SaleItem>();
+                cfg.CreateMap<CreateSaleCommand, Sale>();
+                cfg.CreateMap<Sale, CreateSaleResult>();
+            }).CreateMapper();
 
-        await handler.Handle(command, CancellationToken.None);
+            var command = SaleFakerBuilder.CreateValidCreateCommand(2);
+            var handler = new CreateSaleHandler(_repository, mapper, _publisher);
 
-        await publisher.Received(1).PublishAsync(Arg.Is<SaleCreatedEvent>(e =>
-            e.SaleNumber == 2001 &&
-            e.CustomerName == "Cliente A" &&
-            e.TotalAmount > 0));
-    }
+            // Act
+            await handler.Handle(command, CancellationToken.None);
 
-    [Fact]
-    public async Task UpdateSale_Should_PublishSaleModifiedEvent()
-    {
-        var saleId = Guid.NewGuid();
-        var repository = Substitute.For<ISaleRepository>();
-        var publisher = Substitute.For<IEventPublisher>();
+            // Assert
+            await _publisher.Received(1).PublishAsync(Arg.Is<SaleCreatedEvent>(e =>
+                e.SaleNumber == command.SaleNumber &&
+                e.CustomerName == command.CustomerName &&
+                e.TotalAmount > 0));
+        }
 
-        repository.GetByIdAsync(saleId).Returns(new Sale { Id = saleId, Items = new List<SaleItem>() });
-
-        var config = new MapperConfiguration(cfg =>
+        [Fact]
+        public async Task UpdateSale_Should_PublishSaleModifiedEvent()
         {
-            cfg.CreateMap<Sale, UpdateSaleResult>();
-        });
-        var mapper = config.CreateMapper();
-
-        var handler = new UpdateSaleHandler(repository, mapper, publisher);
-
-        var command = new UpdateSaleCommand
-        {
-            Id = saleId,
-            SaleNumber = 2002,
-            SaleDate = DateTime.UtcNow,
-            CustomerId = Guid.NewGuid(),
-            CustomerName = "Cliente B",
-            Branch = "Filial B",
-            Items = new List<UpdateSaleItemDto>
+            // Arrange
+            var mapper = new MapperConfiguration(cfg =>
             {
-                new UpdateSaleItemDto
-                {
-                    ProductId = Guid.NewGuid(),
-                    ProductName = "Produto Y",
-                    Quantity = 4,
-                    UnitPrice = 20
-                }
-            }
-        };
+                cfg.CreateMap<Sale, UpdateSaleResult>();
+            }).CreateMapper();
 
-        await handler.Handle(command, CancellationToken.None);
+            var saleId = Guid.NewGuid();
+            var existingSale = new Sale { Id = saleId, Items = new List<SaleItem>() };
+            _repository.GetByIdAsync(saleId).Returns(existingSale);
 
-        await publisher.Received(1).PublishAsync(Arg.Is<SaleModifiedEvent>(e =>
-            e.SaleNumber == 2002 &&
-            e.TotalAmount > 0));
-    }
+            var command = SaleFakerBuilder.CreateValidUpdateCommand(saleId, 1);
+            var handler = new UpdateSaleHandler(_repository, mapper, _publisher);
 
-    [Fact]
-    public async Task DeleteSale_Should_PublishSaleCancelledEvent()
-    {
-        var saleId = Guid.NewGuid();
-        var repository = Substitute.For<ISaleRepository>();
-        var publisher = Substitute.For<IEventPublisher>();
+            // Act
+            await handler.Handle(command, CancellationToken.None);
 
-        repository.GetByIdAsync(saleId).Returns(new Sale { Id = saleId });
+            // Assert
+            await _publisher.Received(1).PublishAsync(Arg.Is<SaleModifiedEvent>(e =>
+                e.SaleNumber == command.SaleNumber &&
+                e.TotalAmount > 0));
+        }
 
-        var handler = new DeleteSaleHandler(repository, publisher);
+        [Fact]
+        public async Task DeleteSale_Should_PublishSaleCancelledEvent()
+        {
+            // Arrange
+            var saleId = Guid.NewGuid();
+            var existingSale = new Sale { Id = saleId };
+            _repository.GetByIdAsync(saleId).Returns(existingSale);
 
-        await handler.Handle(new DeleteSaleCommand(saleId), CancellationToken.None);
+            var handler = new DeleteSaleHandler(_repository, _publisher);
 
-        await publisher.Received(1).PublishAsync(Arg.Is<SaleCancelledEvent>(e =>
-            e.SaleId == saleId &&
-            e.Reason == "Deleted via API"));
+            // Act
+            await handler.Handle(new DeleteSaleCommand(saleId), CancellationToken.None);
+
+            // Assert
+            await _publisher.Received(1).PublishAsync(Arg.Is<SaleCancelledEvent>(e =>
+                e.SaleId == saleId &&
+                e.Reason == "Deleted via API"));
+        }
     }
 }

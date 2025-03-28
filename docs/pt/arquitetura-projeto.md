@@ -62,6 +62,30 @@ Abaixo a relação direta entre os requisitos da avaliação e a implementação
 
 ---
 
-## 5. Conclusão
+## 5. Validação automática de requisições (Melhoria em relação ao Template)
+
+No template original, a validação era feita manualmente dentro dos controllers com:
+
+```csharp
+var validator = new SomeRequestValidator();
+var validationResult = await validator.ValidateAsync(request, cancellationToken);
+```
+
+Para melhorar a escalabilidade e reduzir a responsabilidade dos controllers, este projeto adotou a **validação automática com FluentValidation integrada ao pipeline**.
+
+**O que foi adicionado:**
+- Configuração no `Program.cs`:
+  ```csharp
+  builder.Services.AddFluentValidationAutoValidation();
+  builder.Services.AddValidatorsFromAssembly(typeof(ApplicationLayer).Assembly);
+  builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+  ```
+- Todos os validadores são registrados e executados automaticamente.
+
+**Benefício:** As requisições são validadas antes de chegar aos controllers, e os erros são tratados pelo `ValidationExceptionMiddleware`, com respostas consistentes e claras.
+
+---
+
+## 6. Conclusão
 
 O projeto está estruturado para ser limpo, escalável e de fácil manutenção. Os padrões adotados permitem fácil evolução (ex: integração com Message Brokers), reaproveitamento de lógica de negócio e testes automatizados confiáveis.

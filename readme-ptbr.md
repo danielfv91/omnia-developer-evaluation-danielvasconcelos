@@ -13,6 +13,10 @@ A API implementa integralmente as funcionalidades requeridas:
 - [x] Validação de dados com mensagens padronizadas em inglês
 - [x] Eventos de domínio implementados e logados no console (SaleCreated, SaleModified, SaleCancelled)
 
+## Melhorias Técnicas
+
+Este projeto aprimorou o template original implementando a validação automática de requisições utilizando a integração do FluentValidation com o pipeline de requisições. Com isso, os controllers ficam mais limpos e os erros de validação são tratados de forma centralizada e padronizada. Isso foi aplicada ao CRUD de Sales.
+
 ### Autenticação
 
 A autenticação JWT está funcional no projeto.

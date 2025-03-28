@@ -14,6 +14,10 @@ This API fully implements the required functionalities:
 - [x] Data validation with standardized English messages
 - [x] Domain events implemented and logged to the console (SaleCreated, SaleModified, SaleCancelled)
 
+## Technical Improvements
+
+This project enhanced the original template by implementing automatic request validation using FluentValidation’s pipeline integration. This ensures cleaner controllers and centralized validation error handling. This has been implemented in Sales CRUD.
+
 ### Authentication
 
 JWT authentication is fully functional in the project.

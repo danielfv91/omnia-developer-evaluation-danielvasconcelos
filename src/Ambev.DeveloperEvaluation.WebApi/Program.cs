@@ -10,6 +10,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Globalization;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 namespace Ambev.DeveloperEvaluation.WebApi;
 
@@ -33,6 +35,10 @@ public class Program
 
             builder.AddBasicHealthChecks();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssembly(typeof(ApplicationLayer).Assembly);
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
             builder.Services.AddDbContext<DefaultContext>(options =>
                 options.UseNpgsql(

@@ -1,4 +1,6 @@
-﻿namespace Ambev.DeveloperEvaluation.Application.Sales.Events
+﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
+
+namespace Ambev.DeveloperEvaluation.Application.Events.Sales
 {
     public class SaleModifiedEvent : ISaleEvent
     {

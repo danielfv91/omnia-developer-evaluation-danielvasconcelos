@@ -1,7 +1,7 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
+using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
-using Ambev.DeveloperEvaluation.Application.Sales.Events;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;

@@ -1,5 +1,5 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events;
-using Ambev.DeveloperEvaluation.Application.Sales.Events;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
+using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using MediatR;
 using System.Threading;
@@ -25,7 +25,7 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.DeleteSale
             if (existingSale == null)
                 return false;
 
-            await _saleRepository.DeleteAsync(request.Id);
+            await _saleRepository.DeleteAsync(request.Id, cancellationToken);
 
             var saleCancelledEvent = new SaleCancelledEvent
             {
@@ -33,7 +33,7 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.DeleteSale
                 Reason = "Deleted via API"
             };
 
-            await _eventPublisher.PublishAsync(saleCancelledEvent);
+            await _eventPublisher.PublishAsync(saleCancelledEvent, cancellationToken);
 
             return true;
         }

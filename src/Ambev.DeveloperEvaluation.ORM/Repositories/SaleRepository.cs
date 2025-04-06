@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Linq.Dynamic.Core;
 
@@ -18,31 +19,31 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Sale>> GetAllAsync()
+        public async Task<IEnumerable<Sale>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             return await _context.Sales
                 .Include(s => s.Items)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
-        public async Task<Sale> GetByIdAsync(Guid id)
+        public async Task<Sale> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await _context.Sales
                 .Include(s => s.Items)
-                .FirstOrDefaultAsync(s => s.Id == id);
+                .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         }
 
-        public async Task AddAsync(Sale sale)
+        public async Task AddAsync(Sale sale, CancellationToken cancellationToken = default)
         {
-            await _context.Sales.AddAsync(sale);
-            await _context.SaveChangesAsync();
+            await _context.Sales.AddAsync(sale, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task UpdateAsync(Sale sale)
+        public async Task UpdateAsync(Sale sale, CancellationToken cancellationToken = default)
         {
             var existingSale = await _context.Sales
                 .Include(s => s.Items)
-                .FirstOrDefaultAsync(s => s.Id == sale.Id);
+                .FirstOrDefaultAsync(s => s.Id == sale.Id, cancellationToken);
 
             if (existingSale == null)
                 return;
@@ -64,20 +65,21 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
             existingSale.TotalAmount = sale.TotalAmount;
             existingSale.IsCancelled = sale.IsCancelled;
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var sale = await _context.Sales.FindAsync(id);
+            var sale = await _context.Sales.FindAsync(new object[] { id }, cancellationToken);
             if (sale is null) return;
 
             _context.Sales.Remove(sale);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<(List<Sale> Sales, int TotalItems)> GetSalesPagedAsync(
-            int page, int size, string order, string branch, DateTime? minDate, DateTime? maxDate)
+            int page, int size, string order, string branch, DateTime? minDate, DateTime? maxDate,
+            CancellationToken cancellationToken = default)
         {
             var query = _context.Sales
                 .Include(s => s.Items)
@@ -92,7 +94,7 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
             if (maxDate.HasValue)
                 query = query.Where(s => s.SaleDate <= maxDate.Value);
 
-            var totalItems = await query.CountAsync();
+            var totalItems = await query.CountAsync(cancellationToken);
 
             if (!string.IsNullOrWhiteSpace(order))
             {
@@ -120,11 +122,10 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
                 query = query.OrderByDescending(s => s.SaleDate);
             }
 
-
             var sales = await query
                 .Skip((page - 1) * size)
                 .Take(size)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             return (sales, totalItems);
         }

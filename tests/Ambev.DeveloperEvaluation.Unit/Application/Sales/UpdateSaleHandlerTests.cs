@@ -1,5 +1,4 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events;
-using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
+﻿using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
@@ -7,6 +6,7 @@ using AutoMapper;
 using NSubstitute;
 using Xunit;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.Builders;
+using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application.Sales;
 

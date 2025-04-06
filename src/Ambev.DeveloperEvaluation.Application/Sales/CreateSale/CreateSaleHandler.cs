@@ -1,5 +1,5 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events;
-using Ambev.DeveloperEvaluation.Application.Sales.Events;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
+using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
@@ -38,7 +38,7 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
 
             sale.TotalAmount = sale.Items.Sum(i => i.TotalItemAmount);
 
-            await _saleRepository.AddAsync(sale);
+            await _saleRepository.AddAsync(sale, cancellationToken);
 
             var saleCreatedEvent = new SaleCreatedEvent
             {
@@ -48,7 +48,7 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
                 TotalAmount = sale.TotalAmount
             };
 
-            await _eventPublisher.PublishAsync(saleCreatedEvent);
+            await _eventPublisher.PublishAsync(saleCreatedEvent, cancellationToken);
 
             return new CreateSaleResult
             {

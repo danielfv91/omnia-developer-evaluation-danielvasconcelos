@@ -2,7 +2,7 @@
 
 ## 📘 English
 - [Project Architecture](./en/project-architecture.md)
-- [Domain Events](./en/domain-events.md)
+- [Domain Events](./en/events.md)
 - [Testing Strategy](./en/tests.md)
 - [API Examples](./en/api-examples.md)
 - [Changelog](./en/changelog.md)

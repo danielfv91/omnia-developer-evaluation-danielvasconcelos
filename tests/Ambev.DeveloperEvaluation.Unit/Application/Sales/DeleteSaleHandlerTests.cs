@@ -1,13 +1,9 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Unit.Application.Sales.Builders;
+using Ambev.DeveloperEvaluation.Unit.Sales.TestData;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using NSubstitute;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
-using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
+
 
 namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
 {

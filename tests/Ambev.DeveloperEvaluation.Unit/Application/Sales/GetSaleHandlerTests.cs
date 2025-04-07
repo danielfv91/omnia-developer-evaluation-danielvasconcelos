@@ -1,7 +1,6 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
 using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Unit.Application.Sales.Builders;
+using Ambev.DeveloperEvaluation.Unit.Sales.TestData;
 using AutoMapper;
 using NSubstitute;
 using Xunit;

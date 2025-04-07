@@ -12,7 +12,7 @@ This API fully implements the required functionalities:
 - [x] Business rules applied for item quantity-based discounts
 - [x] All required fields present in operations (SaleNumber, Customer, Branch, Products, Quantities, etc.)
 - [x] Data validation with standardized English messages
-- [x] Domain events implemented and logged to the console (SaleCreated, SaleModified, SaleCancelled)
+- [x] Domain events implemented and logged to the console (SaleCreated, SaleModified, SaleCancelled, ItemCancelled)
 
 ## Technical Improvements
 
@@ -45,6 +45,7 @@ JWT authentication is fully functional in the project.
 - xUnit + NSubstitute + Bogus (tests)
 - FluentValidation
 - Architecture: Domain-Driven Design (DDD)
+- Serilog (logging)
 
 ## Project Setup
 

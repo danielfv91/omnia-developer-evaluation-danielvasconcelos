@@ -11,7 +11,7 @@ A API implementa integralmente as funcionalidades requeridas:
 - [x] Aplicação das regras de desconto conforme quantidade de itens
 - [x] Todos os campos solicitados disponíveis nas operações (SaleNumber, Customer, Branch, Produtos, Quantities, etc.)
 - [x] Validação de dados com mensagens padronizadas em inglês
-- [x] Eventos de domínio implementados e logados no console (SaleCreated, SaleModified, SaleCancelled)
+- [x] Eventos de domínio implementados e logados no console (SaleCreated, SaleModified, SaleCancelled, ItemCancelled)
 
 ## Melhorias Técnicas
 
@@ -44,6 +44,7 @@ A autenticação JWT está funcional no projeto.
 - xUnit + NSubstitute + Bogus (testes)
 - FluentValidation
 - Arquitetura: Domain-Driven Design (DDD)
+- Serilog (Para Logs)
 
 ## Configuração do Projeto
 

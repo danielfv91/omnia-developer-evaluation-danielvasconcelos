@@ -29,31 +29,7 @@ public class Program
 
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console(
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-                )
-                .WriteTo.File(
-                    "Logs/app-log.txt",
-                    rollingInterval: RollingInterval.Day,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-                )
-                .WriteTo.Logger(logger => logger
-                   .Filter.ByIncludingOnly(logEvent =>
-                       logEvent.Properties.ContainsKey("SourceContext") &&
-                       logEvent.Properties["SourceContext"].ToString() == "\"EventPublisher\""
-                   )
-                   .WriteTo.File(
-                       "Logs/event-log.txt",
-                       rollingInterval: RollingInterval.Day,
-                       outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-                   )
-                )           
-                .Enrich.FromLogContext()
-                .MinimumLevel.Information()
-                .CreateLogger();
-
-            builder.Host.UseSerilog();
+            builder.AddDefaultLogging();
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
@@ -89,13 +65,16 @@ public class Program
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             var app = builder.Build();
+            app.UseDefaultLogging();
+
             app.UseMiddleware<ValidationExceptionMiddleware>();
+            app.UseMiddleware<ExceptionMiddleware>();
 
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-            }
+            }            
 
             app.UseHttpsRedirection();
 

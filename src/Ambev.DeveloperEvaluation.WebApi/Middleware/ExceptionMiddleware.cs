@@ -13,14 +13,15 @@ public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;
 
-    private static readonly ILogger _logger = Log.ForContext("SourceContext", "ExceptionMiddleware");
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExceptionMiddleware"/> class.
     /// </summary>
-    public ExceptionMiddleware(RequestDelegate next)
+    public ExceptionMiddleware(RequestDelegate next, ILogger logger)
     {
         _next = next;
+        _logger = logger.ForContext("SourceContext", "ExceptionMiddleware");
     }
 
     /// <summary>

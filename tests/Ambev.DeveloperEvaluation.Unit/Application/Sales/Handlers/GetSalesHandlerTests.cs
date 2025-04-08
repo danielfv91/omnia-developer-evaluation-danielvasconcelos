@@ -5,7 +5,7 @@ using AutoMapper;
 using NSubstitute;
 using Xunit;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
+namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers
 {
 
     public class GetSalesHandlerTests

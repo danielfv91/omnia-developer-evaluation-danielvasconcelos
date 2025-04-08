@@ -3,7 +3,7 @@ using Bogus;
 
 namespace Ambev.DeveloperEvaluation.Unit.Sales.TestData
 {
-    public static class SaleTestData
+    public static class SalesHandlersTestData
     {
 
         public static IEnumerable<object[]> GenerateWithBogus()

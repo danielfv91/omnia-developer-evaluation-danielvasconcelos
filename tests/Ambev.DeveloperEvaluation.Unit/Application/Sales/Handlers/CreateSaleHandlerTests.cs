@@ -8,7 +8,7 @@ using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
+namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers
 {
     public class CreateSaleHandlerTests
     {
@@ -28,11 +28,11 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         }
 
         [Theory]
-        [MemberData(nameof(SaleTestData.DiscountScenarios), MemberType = typeof(SaleTestData))]
+        [MemberData(nameof(SalesHandlersTestData.DiscountScenarios), MemberType = typeof(SalesHandlersTestData))]
         public async Task Handle_Should_CreateSaleCorrectly_WithCalculatedTotal(int quantity, decimal unitPrice, decimal discount, decimal expectedTotal)
         {
             // Arrange
-            var command = SaleTestData.CreateCommand(quantity, unitPrice);
+            var command = SalesHandlersTestData.CreateCommand(quantity, unitPrice);
 
             var expectedItems = new List<SaleItem>
             {

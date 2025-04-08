@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using Ambev.DeveloperEvaluation.Integration.Containers;
-using Ambev.DeveloperEvaluation.Integration.Factory;
+using Ambev.DeveloperEvaluation.Functional.Containers;
+using Ambev.DeveloperEvaluation.Functional.Factory;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSale;
@@ -12,7 +12,7 @@ using Xunit;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ambev.DeveloperEvaluation.Integration.Features.Sales;
+namespace Ambev.DeveloperEvaluation.Functional.Features.Sales;
 
 public class SalesEndpointTests : IAsyncLifetime
 {

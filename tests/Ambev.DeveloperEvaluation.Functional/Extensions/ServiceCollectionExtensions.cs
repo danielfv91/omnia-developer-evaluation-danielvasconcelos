@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 
-namespace Ambev.DeveloperEvaluation.Integration.Extensions;
+namespace Ambev.DeveloperEvaluation.Functional.Extensions;
 
 public static class ServiceCollectionExtensions
 {

@@ -1,4 +1,4 @@
-using Ambev.DeveloperEvaluation.Integration.Extensions;
+using Ambev.DeveloperEvaluation.Functional.Extensions;
 using Ambev.DeveloperEvaluation.ORM;
 using Ambev.DeveloperEvaluation.WebApi;
 using Microsoft.AspNetCore.Hosting;
@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Linq;
 
-namespace Ambev.DeveloperEvaluation.Integration.Factory;
+namespace Ambev.DeveloperEvaluation.Functional.Factory;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {

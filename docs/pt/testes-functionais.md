@@ -10,7 +10,7 @@ Este documento descreve como executar e entender os testes funcionais (de integr
 
 ## Executando os testes
 ```bash
-dotnet test tests/Ambev.DeveloperEvaluation.Integration
+dotnet test tests/Ambev.DeveloperEvaluation.Functional
 ```
 
 ## Como funciona

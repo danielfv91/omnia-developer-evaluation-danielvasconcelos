@@ -10,7 +10,7 @@ This guide explains how to run and understand integration tests for the project.
 
 ## Run the tests
 ```bash
-dotnet test tests/Ambev.DeveloperEvaluation.Integration
+dotnet test tests/Ambev.DeveloperEvaluation.Functional
 ```
 
 ## How it works

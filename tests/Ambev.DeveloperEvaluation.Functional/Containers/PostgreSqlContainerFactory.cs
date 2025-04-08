@@ -1,6 +1,6 @@
 using Testcontainers.PostgreSql;
 
-namespace Ambev.DeveloperEvaluation.Integration.Containers
+namespace Ambev.DeveloperEvaluation.Functional.Containers
 {
     public class PostgreSqlContainerFactory : IAsyncDisposable
     {

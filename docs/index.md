@@ -6,6 +6,8 @@
 - [Testing Strategy](./en/tests.md)
 - [API Examples](./en/api-examples.md)
 - [Changelog](./en/changelog.md)
+- [Logging](./en/logging.md)
+- [Clean Code and Best Practices](./en/clean-code-and-best-practices.md)
 
 ---
 
@@ -15,3 +17,5 @@
 - [Estratégia de Testes](./pt/testes.md)
 - [Exemplos da API](./pt/exemplos-api.md)
 - [Notas de Versão](./pt/changelog.md)
+- [Logs](./pt/logs.md)
+- [Clean Code e Boas Práticas](./pt/clean-code-e-boas-praticas.md)

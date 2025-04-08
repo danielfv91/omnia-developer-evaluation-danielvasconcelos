@@ -1,6 +1,5 @@
-﻿using MediatR;
-using System;
-using System.Collections.Generic;
+﻿using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
+using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
 {
@@ -14,7 +13,7 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
         public List<CreateSaleItemDto> Items { get; set; }
     }
 
-    public class CreateSaleItemDto
+    public class CreateSaleItemDto : ISaleItemInput
     {
         public Guid ProductId { get; set; }
         public string ProductName { get; set; }

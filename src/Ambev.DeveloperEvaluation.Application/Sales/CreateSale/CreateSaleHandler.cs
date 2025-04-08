@@ -2,74 +2,60 @@
 using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
 using AutoMapper;
 using MediatR;
-using System;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale
 {
-
     public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleResult>
     {
         private readonly ISaleRepository _saleRepository;
         private readonly IMapper _mapper;
         private readonly IEventPublisher _eventPublisher;
+        private readonly ISaleItemBuilder _saleItemBuilder;
 
-        public CreateSaleHandler(ISaleRepository saleRepository, IMapper mapper, IEventPublisher eventPublisher)
+        public CreateSaleHandler(
+            ISaleRepository saleRepository,
+            IMapper mapper,
+            IEventPublisher eventPublisher,
+            ISaleItemBuilder saleItemBuilder)
         {
             _saleRepository = saleRepository;
             _mapper = mapper;
             _eventPublisher = eventPublisher;
+            _saleItemBuilder = saleItemBuilder;
         }
 
         public async Task<CreateSaleResult> Handle(CreateSaleCommand request, CancellationToken cancellationToken)
         {
-            var sale = _mapper.Map<Sale>(request);
-            sale.Id = Guid.NewGuid();
-            sale.IsCancelled = false;
-
-            foreach (var item in sale.Items)
+            var sale = new Sale
             {
-                item.Id = Guid.NewGuid();
-                item.DiscountPercentage = CalculateDiscount(item.Quantity);
-                item.TotalItemAmount = CalculateTotalItem(item.Quantity, item.UnitPrice, item.DiscountPercentage);
-                item.IsCancelled = false;
-            }
+                Id = Guid.NewGuid(),
+                SaleNumber = request.SaleNumber,
+                SaleDate = request.SaleDate,
+                CustomerId = request.CustomerId,
+                CustomerName = request.CustomerName,
+                Branch = request.Branch
+            };
 
-            sale.TotalAmount = sale.Items.Sum(i => i.TotalItemAmount);
+            sale.Items = _saleItemBuilder.Build(request.Items, sale.Id);
+            sale.TotalAmount = _saleItemBuilder.CalculateTotalAmount(sale.Items);
 
             await _saleRepository.AddAsync(sale, cancellationToken);
 
-            var saleCreatedEvent = new SaleCreatedEvent
+            var createdEvent = new SaleCreatedEvent
             {
                 SaleId = sale.Id,
                 SaleNumber = sale.SaleNumber,
                 CustomerName = sale.CustomerName,
-                TotalAmount = sale.TotalAmount
-            };
-
-            await _eventPublisher.PublishAsync(saleCreatedEvent, cancellationToken);
-
-            return new CreateSaleResult
-            {
-                Id = sale.Id,
-                SaleNumber = sale.SaleNumber,
                 TotalAmount = sale.TotalAmount,
-                CreatedAt = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow
             };
-        }
 
-        private decimal CalculateDiscount(int quantity)
-        {
-            if (quantity >= 10 && quantity <= 20) return 20;
-            if (quantity >= 4 && quantity < 10) return 10;
-            return 0;
-        }
+            await _eventPublisher.PublishAsync(createdEvent, cancellationToken);
 
-        private decimal CalculateTotalItem(int quantity, decimal unitPrice, decimal discount)
-        {
-            var total = quantity * unitPrice;
-            return total - (total * discount / 100);
+            return _mapper.Map<CreateSaleResult>(sale);
         }
     }
 }

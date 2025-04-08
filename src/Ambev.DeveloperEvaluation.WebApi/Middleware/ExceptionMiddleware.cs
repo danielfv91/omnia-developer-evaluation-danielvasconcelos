@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Text.Json;
-using Serilog;
+using Ambev.DeveloperEvaluation.Common.Validation;
+using Ambev.DeveloperEvaluation.WebApi.Common;
+using FluentValidation;
 using ILogger = Serilog.ILogger;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Middleware;
@@ -32,6 +34,29 @@ public class ExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (ValidationException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            context.Response.ContentType = "application/json";
+
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = "Validation failed",
+                Errors = ex.Errors.Select(error => new ValidationErrorDetail
+                {
+                    Error = error.PropertyName,
+                    Detail = error.ErrorMessage
+                })
+            };
+
+            var json = JsonSerializer.Serialize(response, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            await context.Response.WriteAsync(json);
         }
         catch (Exception ex)
         {

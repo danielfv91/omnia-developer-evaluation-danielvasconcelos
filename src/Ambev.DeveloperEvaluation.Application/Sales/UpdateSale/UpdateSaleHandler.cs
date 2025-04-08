@@ -1,8 +1,7 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
-using Ambev.DeveloperEvaluation.Application.Events.Sales;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
 using AutoMapper;
 using MediatR;
 
@@ -13,12 +12,18 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
         private readonly ISaleRepository _saleRepository;
         private readonly IMapper _mapper;
         private readonly IEventPublisher _eventPublisher;
+        private readonly ISaleItemBuilder _saleItemBuilder;
 
-        public UpdateSaleHandler(ISaleRepository saleRepository, IMapper mapper, IEventPublisher eventPublisher)
+        public UpdateSaleHandler(
+            ISaleRepository saleRepository,
+            IMapper mapper,
+            IEventPublisher eventPublisher,
+            ISaleItemBuilder saleItemBuilder)
         {
             _saleRepository = saleRepository;
             _mapper = mapper;
             _eventPublisher = eventPublisher;
+            _saleItemBuilder = saleItemBuilder;
         }
 
         public async Task<UpdateSaleResult> Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
@@ -26,7 +31,7 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
             var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken);
 
             if (sale == null)
-                return null;
+                throw new NotFoundException($"Sale with ID {request.Id} was not found.");
 
             sale.SaleNumber = request.SaleNumber;
             sale.SaleDate = request.SaleDate;
@@ -34,78 +39,56 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
             sale.CustomerName = request.CustomerName;
             sale.Branch = request.Branch;
 
-            var existingItems = sale.Items ?? new List<SaleItem>();
-            var updatedProductIds = request.Items.Select(i => i.ProductId).ToHashSet();
+            await PublishItemCancelledEvents(sale.Items, request.Items, sale.Id, cancellationToken);
+
+            var newItems = _saleItemBuilder.Build(request.Items, sale.Id);
+            sale.Items = newItems;
+            sale.TotalAmount = _saleItemBuilder.CalculateTotalAmount(newItems);
+
+            await _saleRepository.UpdateAsync(sale, cancellationToken);
+
+            var updatedEvent = new SaleModifiedEvent
+            {
+                SaleId = sale.Id,
+                SaleNumber = sale.SaleNumber,
+                TotalAmount = sale.TotalAmount,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await _eventPublisher.PublishAsync(updatedEvent, cancellationToken);
+
+            return _mapper.Map<UpdateSaleResult>(sale);
+        }
+
+        private async Task PublishItemCancelledEvents(
+            List<SaleItem> existingItems,
+            List<UpdateSaleItemDto> updatedItems,
+            Guid saleId,
+            CancellationToken cancellationToken)
+        {
+            if (existingItems == null || existingItems.Count == 0)
+                return;
+
+            var updatedProductIds = updatedItems.Select(i => i.ProductId).ToHashSet();
 
             var cancelledItems = existingItems
                 .Where(item => !updatedProductIds.Contains(item.ProductId))
                 .ToList();
 
-            foreach (var cancelledItem in cancelledItems)
+            foreach (var item in cancelledItems)
             {
-                var itemCancelledEvent = new ItemCancelledEvent
+                var cancelEvent = new ItemCancelledEvent
                 {
-                    SaleId = sale.Id,
-                    ItemId = cancelledItem.Id,
-                    ProductId = cancelledItem.ProductId,
-                    ProductName = cancelledItem.ProductName,
+                    SaleId = saleId,
+                    ItemId = item.Id,
+                    ProductId = item.ProductId,
+                    ProductName = item.ProductName,
                     CancelledAt = DateTime.UtcNow,
                     Reason = "Item removed during sale update"
                 };
 
-                await _eventPublisher.PublishAsync(itemCancelledEvent, cancellationToken);
+                await _eventPublisher.PublishAsync(cancelEvent, cancellationToken);
             }
-
-            sale.Items = new List<SaleItem>();
-
-            foreach (var item in request.Items)
-            {
-                var discount = CalculateDiscount(item.Quantity);
-                var saleItem = new SaleItem
-                {
-                    Id = Guid.NewGuid(),
-                    SaleId = sale.Id,
-                    ProductId = item.ProductId,
-                    ProductName = item.ProductName,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    DiscountPercentage = discount,
-                    TotalItemAmount = CalculateTotalItem(item.Quantity, item.UnitPrice, discount),
-                    IsCancelled = false
-                };
-
-                sale.Items.Add(saleItem);
-            }
-
-            sale.TotalAmount = sale.Items.Sum(i => i.TotalItemAmount);
-
-            await _saleRepository.UpdateAsync(sale);
-
-            var saleModifiedEvent = new SaleModifiedEvent
-            {
-                SaleId = sale.Id,
-                SaleNumber = sale.SaleNumber,
-                TotalAmount = sale.TotalAmount
-            };
-
-            await _eventPublisher.PublishAsync(saleModifiedEvent, cancellationToken);
-
-            return _mapper.Map<UpdateSaleResult>(sale);
-        }
-
-        private decimal CalculateDiscount(int quantity)
-        {
-            if (quantity >= 10 && quantity <= 20) return 20;
-            if (quantity >= 4 && quantity < 10) return 10;
-            if (quantity > 20)
-                throw new BusinessException("Cannot sell more than 20 identical items per product.");
-            return 0;
-        }
-
-        private decimal CalculateTotalItem(int quantity, decimal unitPrice, decimal discount)
-        {
-            var total = quantity * unitPrice;
-            return total - (total * discount / 100);
         }
     }
 }

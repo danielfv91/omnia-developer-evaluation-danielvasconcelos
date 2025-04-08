@@ -1,139 +1,98 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
+using Ambev.DeveloperEvaluation.Unit.Sales.TestData;
 using AutoMapper;
+using FluentAssertions;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Xunit;
-using Ambev.DeveloperEvaluation.Unit.Application.Sales.Builders;
-using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales;
-
-public class UpdateSaleHandlerTests
+namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
 {
-    private readonly ISaleRepository _saleRepository = Substitute.For<ISaleRepository>();
-    private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
-    private readonly IMapper _mapper;
-
-    public UpdateSaleHandlerTests()
+    public class UpdateSaleHandlerTests
     {
-        var config = new MapperConfiguration(cfg =>
+        private readonly ISaleRepository _saleRepository = Substitute.For<ISaleRepository>();
+        private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
+        private readonly ISaleItemBuilder _itemBuilder = Substitute.For<ISaleItemBuilder>();
+        private readonly IMapper _mapper;
+
+        public UpdateSaleHandlerTests()
         {
-            cfg.CreateMap<Sale, UpdateSaleResult>();
-        });
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<Sale, UpdateSaleResult>();
+            });
 
-        _mapper = config.CreateMapper();
-    }
+            _mapper = config.CreateMapper();
+        }
 
-    [Fact]
-    public async Task Handle_Should_UpdateSaleSuccessfully()
-    {
-        // Arrange
-        var command = SaleFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), items: 2);
-        var existingSale = new Sale { Id = command.Id, Items = new List<SaleItem>() };
+        [Theory]
+        [MemberData(nameof(SaleTestData.DiscountScenarios), MemberType = typeof(SaleTestData))]
+        public async Task Handle_Should_UpdateSale_Correctly_With_Discount(int quantity, decimal unitPrice, decimal discount, decimal expectedTotal)
+        {
+            // Arrange
+            var command = SaleFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1);
+            var item = command.Items[0];
+            item.Quantity = quantity;
+            item.UnitPrice = unitPrice;
 
-        _saleRepository.GetByIdAsync(command.Id).Returns(existingSale);
+            var existingSale = new Sale { Id = command.Id, Items = new List<SaleItem>() };
+            _saleRepository.GetByIdAsync(command.Id).Returns(existingSale);
 
-        var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
+            var expectedItems = new List<SaleItem>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    SaleId = command.Id,
+                    ProductId = item.ProductId,
+                    ProductName = item.ProductName,
+                    Quantity = quantity,
+                    UnitPrice = unitPrice,
+                    DiscountPercentage = discount,
+                    TotalItemAmount = expectedTotal,
+                    IsCancelled = false
+                }
+            };
 
-        // Act
-        var result = await handler.Handle(command, CancellationToken.None);
+            _itemBuilder.Build(command.Items, command.Id).Returns(expectedItems);
+            _itemBuilder.CalculateTotalAmount(expectedItems).Returns(expectedTotal);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(command.SaleNumber, result.SaleNumber);
-        Assert.Equal(command.CustomerName, result.CustomerName);
-        Assert.Equal(command.Branch, result.Branch);
-        Assert.True(result.TotalAmount > 0);
+            var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher, _itemBuilder);
 
-        await _saleRepository.Received(1).UpdateAsync(Arg.Is<Sale>(s =>
-            s.SaleNumber == command.SaleNumber &&
-            s.CustomerName == command.CustomerName &&
-            s.Items.Count == command.Items.Count &&
-            s.TotalAmount > 0));
-    }
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
 
-    [Fact]
-    public async Task Handle_Should_ThrowBusinessException_WhenQuantityExceedsLimit()
-    {
-        // Arrange
-        var command = SaleFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1);
-        command.Items[0].Quantity = 25;
+            // Assert
+            result.Should().NotBeNull();
+            result.TotalAmount.Should().BeApproximately(expectedTotal, 0.01m);
+            await _saleRepository.Received(1).UpdateAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
+        }
 
-        var existingSale = new Sale { Id = command.Id, Items = new List<SaleItem>() };
-        _saleRepository.GetByIdAsync(command.Id).Returns(existingSale);
+        [Fact]
+        public async Task Handle_Should_ThrowBusinessException_WhenQuantityExceedsLimit()
+        {
+            // Arrange
+            var command = SaleFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1);
+            command.Items[0].Quantity = 25;
+            command.Items[0].UnitPrice = 10;
 
-        var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
+            var existingSale = new Sale { Id = command.Id, Items = new List<SaleItem>() };
+            _saleRepository.GetByIdAsync(command.Id).Returns(existingSale);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<BusinessException>(() => handler.Handle(command, CancellationToken.None));
-        await _saleRepository.DidNotReceive().UpdateAsync(Arg.Any<Sale>());
-    }
+            _itemBuilder
+                .Build(command.Items, command.Id)
+                .Throws(new BusinessException("Cannot sell more than 20 identical items per product."));
 
-    [Fact]
-    public async Task Handle_Should_CalculateNoDiscount_WhenQuantityIsLessThan4()
-    {
-        // Arrange
-        var command = SaleFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1);
-        command.Items[0].Quantity = 2;
-        command.Items[0].UnitPrice = 10;
+            var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher, _itemBuilder);
 
-        var expectedTotal = 2 * 10;
-        var existingSale = new Sale { Id = command.Id, Items = new List<SaleItem>() };
+            // Act & Assert
+            Func<Task> act = async () => await handler.Handle(command, CancellationToken.None);
+            await act.Should().ThrowAsync<BusinessException>();
 
-        _saleRepository.GetByIdAsync(command.Id).Returns(existingSale);
-
-        var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
-
-        // Act
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedTotal, result.TotalAmount);
-    }
-
-    [Fact]
-    public async Task Handle_Should_Apply10PercentDiscount_WhenQuantityBetween4And9()
-    {
-        // Arrange
-        var command = SaleFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1);
-        command.Items[0].Quantity = 5;
-        command.Items[0].UnitPrice = 20;
-
-        var expectedTotal = 5 * 20 * 0.9m;
-        var existingSale = new Sale { Id = command.Id, Items = new List<SaleItem>() };
-
-        _saleRepository.GetByIdAsync(command.Id).Returns(existingSale);
-
-        var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
-
-        // Act
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedTotal, result.TotalAmount);
-    }
-
-    [Fact]
-    public async Task Handle_Should_Apply20PercentDiscount_WhenQuantityBetween10And20()
-    {
-        // Arrange
-        var command = SaleFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1);
-        command.Items[0].Quantity = 15;
-        command.Items[0].UnitPrice = 30;
-
-        var expectedTotal = 15 * 30 * 0.8m;
-        var existingSale = new Sale { Id = command.Id, Items = new List<SaleItem>() };
-
-        _saleRepository.GetByIdAsync(command.Id).Returns(existingSale);
-
-        var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher);
-
-        // Act
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedTotal, result.TotalAmount);
+            await _saleRepository.DidNotReceive().UpdateAsync(Arg.Any<Sale>());
+        }
     }
 }

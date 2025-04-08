@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Ambev.DeveloperEvaluation.Common.Exceptions
+﻿namespace Ambev.DeveloperEvaluation.Common.Exceptions
 {
     public class BusinessException : Exception
     {

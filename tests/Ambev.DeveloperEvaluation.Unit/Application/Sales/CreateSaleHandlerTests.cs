@@ -1,9 +1,10 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Unit.Application.Sales.Builders;
+using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
+using Ambev.DeveloperEvaluation.Unit.Sales.TestData;
 using AutoMapper;
+using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -11,61 +12,62 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
 {
     public class CreateSaleHandlerTests
     {
-        private readonly ISaleRepository _saleRepository;
+        private readonly ISaleRepository _saleRepository = Substitute.For<ISaleRepository>();
+        private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
+        private readonly ISaleItemBuilder _itemBuilder = Substitute.For<ISaleItemBuilder>();
         private readonly IMapper _mapper;
-        private readonly CreateSaleHandler _handler;
-        private readonly IEventPublisher _eventPublisher;
 
         public CreateSaleHandlerTests()
         {
-            _saleRepository = Substitute.For<ISaleRepository>();
-            _mapper = Substitute.For<IMapper>();
-            _eventPublisher = Substitute.For<IEventPublisher>();
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile<CreateSaleProfile>();
+            });
 
-            _handler = new CreateSaleHandler(_saleRepository, _mapper, _eventPublisher);
+            _mapper = config.CreateMapper();
         }
 
-        [Fact]
-        public async Task Handle_Should_CreateSaleSuccessfully()
+        [Theory]
+        [MemberData(nameof(SaleTestData.DiscountScenarios), MemberType = typeof(SaleTestData))]
+        public async Task Handle_Should_CreateSaleCorrectly_WithCalculatedTotal(int quantity, decimal unitPrice, decimal discount, decimal expectedTotal)
         {
             // Arrange
-            var command = SaleFakerBuilder.CreateValidCreateCommand(2);
+            var command = SaleTestData.CreateCommand(quantity, unitPrice);
 
-            var mappedSale = new Sale
+            var expectedItems = new List<SaleItem>
             {
-                Id = Guid.NewGuid(),
-                SaleNumber = command.SaleNumber,
-                SaleDate = command.SaleDate,
-                CustomerId = command.CustomerId,
-                CustomerName = command.CustomerName,
-                Branch = command.Branch,
-                Items = command.Items.Select(i => new SaleItem
+                new()
                 {
-                    ProductId = i.ProductId,
-                    ProductName = i.ProductName,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice,
-                }).ToList()
+                    Id = Guid.NewGuid(),
+                    SaleId = Guid.NewGuid(),
+                    ProductId = command.Items[0].ProductId,
+                    ProductName = command.Items[0].ProductName,
+                    Quantity = quantity,
+                    UnitPrice = unitPrice,
+                    DiscountPercentage = discount,
+                    TotalItemAmount = expectedTotal,
+                    IsCancelled = false
+                }
             };
 
-            _mapper.Map<Sale>(command).Returns(mappedSale);
+            _itemBuilder.Build(command.Items, Arg.Any<Guid>()).Returns(expectedItems);
+            _itemBuilder.CalculateTotalAmount(expectedItems).Returns(expectedTotal);
+
+            var handler = new CreateSaleHandler(
+                _saleRepository,
+                _mapper,
+                _eventPublisher,
+                _itemBuilder
+            );
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await handler.Handle(command, CancellationToken.None);
 
             // Assert
-            await _saleRepository.Received(1).AddAsync(Arg.Is<Sale>(s =>
-                s.SaleNumber == command.SaleNumber &&
-                s.CustomerName == command.CustomerName &&
-                s.Branch == command.Branch &&
-                s.Items.Count == command.Items.Count &&
-                s.TotalAmount > 0
-            ));
-
-            Assert.NotNull(result);
-            Assert.Equal(mappedSale.Id, result.Id);
-            Assert.Equal(mappedSale.SaleNumber, result.SaleNumber);
-            Assert.Equal(mappedSale.TotalAmount, result.TotalAmount);
+            result.Should().NotBeNull();
+            result.TotalAmount.Should().Be(expectedTotal);
+            await _saleRepository.Received(1).AddAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
+            await _eventPublisher.Received(1).PublishAsync(Arg.Any<SaleCreatedEvent>(), Arg.Any<CancellationToken>());
         }
     }
 }

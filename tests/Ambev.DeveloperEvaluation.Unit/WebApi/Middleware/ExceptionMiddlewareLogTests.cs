@@ -14,7 +14,7 @@ public class ExceptionMiddlewareLogTests
     [Fact]
     public async Task InvokeAsync_Should_LogError_WhenExceptionOccurs()
     {
-        // Arrange: capturar logs em memória
+        // Arrange
         var logEvents = new List<LogEvent>();
         var sink = new DelegatingSink(e => logEvents.Add(e));
 
@@ -32,7 +32,7 @@ public class ExceptionMiddlewareLogTests
         // Act
         await middleware.InvokeAsync(context);
 
-        // Assert: verifica se um erro foi logado
+        // Assert
         var errorLog = logEvents.FirstOrDefault(e => e.Level == LogEventLevel.Error);
         Assert.NotNull(errorLog);
         Assert.Contains("An unhandled exception occurred", errorLog.RenderMessage());

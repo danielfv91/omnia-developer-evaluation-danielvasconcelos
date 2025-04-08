@@ -8,6 +8,7 @@
 - [Changelog](./en/changelog.md)
 - [Logging](./en/logging.md)
 - [Clean Code and Best Practices](./en/clean-code-and-best-practices.md)
+- [Functional Tests](./en/tests-functional.md)
 
 ---
 
@@ -19,3 +20,4 @@
 - [Notas de Versão](./pt/changelog.md)
 - [Logs](./pt/logs.md)
 - [Clean Code e Boas Práticas](./pt/clean-code-e-boas-praticas.md)
+- [Testes Funcionais](./pt/testes-funcionais.md)

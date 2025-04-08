@@ -1,11 +1,5 @@
 ﻿using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Linq.Dynamic.Core;
 
 namespace Ambev.DeveloperEvaluation.ORM.Repositories
@@ -78,15 +72,15 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
         }
 
         public async Task<(List<Sale> Sales, int TotalItems)> GetSalesPagedAsync(
-            int page, int size, string order, string branch, DateTime? minDate, DateTime? maxDate,
-            CancellationToken cancellationToken = default)
+        int page, int size, string order, string branch, DateTime? minDate, DateTime? maxDate,
+        CancellationToken cancellationToken = default)
         {
             var query = _context.Sales
                 .Include(s => s.Items)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(branch))
-                query = query.Where(s => s.Branch.Contains(branch));
+                query = query.Where(s => s.Branch.ToLower().Contains(branch.ToLower()));
 
             if (minDate.HasValue)
                 query = query.Where(s => s.SaleDate >= minDate.Value);
@@ -129,5 +123,6 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
 
             return (sales, totalItems);
         }
+
     }
 }

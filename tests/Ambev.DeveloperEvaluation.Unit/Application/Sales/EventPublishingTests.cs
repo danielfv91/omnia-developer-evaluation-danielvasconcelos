@@ -170,7 +170,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
             var command = SaleFakerBuilder.CreateValidUpdateCommand(saleId, 1);
             var newItem = command.Items[0];
 
-            var expectedItems = new List<SaleItem>
+            var newItems = new List<SaleItem>
             {
                 new()
                 {
@@ -186,15 +186,18 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
                 }
             };
 
-            _itemBuilder.Build(command.Items, saleId).Returns(expectedItems);
-            _itemBuilder.CalculateTotalAmount(expectedItems).Returns(expectedItems[0].TotalItemAmount);
+            _itemBuilder.Build(command.Items, saleId).Returns(newItems);
+            _itemBuilder.CalculateTotalAmount(newItems).Returns(newItems[0].TotalItemAmount);
 
             var handler = new UpdateSaleHandler(_saleRepository, _mapper, _eventPublisher, _itemBuilder);
 
+            // Act
             await handler.Handle(command, CancellationToken.None);
 
+            // Assert
             await _eventPublisher.Received(2).PublishAsync(Arg.Is<ItemCancelledEvent>(e =>
-                originalItems.Select(i => i.ProductName).Contains(e.ProductName)));
+                originalItems.Any(oi => oi.ProductName == e.ProductName)));
         }
+
     }
 }

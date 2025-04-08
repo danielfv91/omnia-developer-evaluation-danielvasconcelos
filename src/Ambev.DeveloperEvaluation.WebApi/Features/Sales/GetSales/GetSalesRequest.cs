@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ambev.DeveloperEvaluation.WebApi.Binders;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSales
 {
@@ -8,7 +9,11 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSales
         public int Size { get; set; } = 10;
         public string Order { get; set; } = "SaleDate desc";
         public string? Branch { get; set; }
+
+        [ModelBinder(BinderType = typeof(CustomDateTimeModelBinder))]
         public DateTime? MinDate { get; set; }
+
+        [ModelBinder(BinderType = typeof(CustomDateTimeModelBinder))]
         public DateTime? MaxDate { get; set; }
     }
 }

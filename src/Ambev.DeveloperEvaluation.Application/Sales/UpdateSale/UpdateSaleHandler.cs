@@ -1,5 +1,4 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
-using Ambev.DeveloperEvaluation.Application.Events.Sales;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
@@ -40,29 +39,8 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
             sale.CustomerName = request.CustomerName;
             sale.Branch = request.Branch;
 
-            var existingItems = sale.Items ?? new List<SaleItem>();
-            var updatedProductIds = request.Items.Select(i => i.ProductId).ToHashSet();
+            await PublishItemCancelledEvents(sale.Items, request.Items, sale.Id, cancellationToken);
 
-            var cancelledItems = existingItems
-                .Where(item => !updatedProductIds.Contains(item.ProductId))
-                .ToList();
-
-            var cancelEvents = cancelledItems.Select(item => new ItemCancelledEvent
-            {
-                SaleId = sale.Id,
-                ItemId = item.Id,
-                ProductId = item.ProductId,
-                ProductName = item.ProductName,
-                CancelledAt = DateTime.UtcNow,
-                Reason = "Item removed during sale update"
-            });
-
-            foreach (var cancelEvent in cancelEvents)
-            {
-                await _eventPublisher.PublishAsync(cancelEvent, cancellationToken);
-            }
-
-            // Novo uso do builder
             var newItems = _saleItemBuilder.Build(request.Items, sale.Id);
             sale.Items = newItems;
             sale.TotalAmount = _saleItemBuilder.CalculateTotalAmount(newItems);
@@ -80,6 +58,37 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
             await _eventPublisher.PublishAsync(updatedEvent, cancellationToken);
 
             return _mapper.Map<UpdateSaleResult>(sale);
+        }
+
+        private async Task PublishItemCancelledEvents(
+            List<SaleItem> existingItems,
+            List<UpdateSaleItemDto> updatedItems,
+            Guid saleId,
+            CancellationToken cancellationToken)
+        {
+            if (existingItems == null || existingItems.Count == 0)
+                return;
+
+            var updatedProductIds = updatedItems.Select(i => i.ProductId).ToHashSet();
+
+            var cancelledItems = existingItems
+                .Where(item => !updatedProductIds.Contains(item.ProductId))
+                .ToList();
+
+            foreach (var item in cancelledItems)
+            {
+                var cancelEvent = new ItemCancelledEvent
+                {
+                    SaleId = saleId,
+                    ItemId = item.Id,
+                    ProductId = item.ProductId,
+                    ProductName = item.ProductName,
+                    CancelledAt = DateTime.UtcNow,
+                    Reason = "Item removed during sale update"
+                };
+
+                await _eventPublisher.PublishAsync(cancelEvent, cancellationToken);
+            }
         }
     }
 }

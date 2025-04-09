@@ -9,7 +9,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
+namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers
 {
     public class UpdateSaleHandlerTests
     {
@@ -29,7 +29,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         }
 
         [Theory]
-        [MemberData(nameof(SaleTestData.DiscountScenarios), MemberType = typeof(SaleTestData))]
+        [MemberData(nameof(SalesHandlersTestData.DiscountScenarios), MemberType = typeof(SalesHandlersTestData))]
         public async Task Handle_Should_UpdateSale_Correctly_With_Discount(int quantity, decimal unitPrice, decimal discount, decimal expectedTotal)
         {
             // Arrange

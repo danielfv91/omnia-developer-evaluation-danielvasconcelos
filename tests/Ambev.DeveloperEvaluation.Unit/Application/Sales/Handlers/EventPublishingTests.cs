@@ -11,7 +11,7 @@ using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
+namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers
 {
     public class EventPublishingTests
     {
@@ -32,10 +32,10 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         }
 
         [Theory]
-        [MemberData(nameof(SaleTestData.GenerateWithBogus), MemberType = typeof(SaleTestData))]
+        [MemberData(nameof(SalesHandlersTestData.GenerateWithBogus), MemberType = typeof(SalesHandlersTestData))]
         public async Task CreateSale_Should_PublishSaleCreatedEvent_WithRealisticData(int quantity, decimal unitPrice, decimal discount, decimal expectedTotal)
         {
-            var command = SaleTestData.CreateCommand(quantity, unitPrice);
+            var command = SalesHandlersTestData.CreateCommand(quantity, unitPrice);
 
             var fakeItem = command.Items.First();
 
@@ -72,7 +72,7 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales
         }
 
         [Theory]
-        [MemberData(nameof(SaleTestData.GenerateWithBogus), MemberType = typeof(SaleTestData))]
+        [MemberData(nameof(SalesHandlersTestData.GenerateWithBogus), MemberType = typeof(SalesHandlersTestData))]
         public async Task UpdateSale_Should_PublishSaleModifiedEvent_WithRealisticData(int quantity, decimal unitPrice, decimal discount, decimal expectedTotal)
         {
             var saleId = Guid.NewGuid();

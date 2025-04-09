@@ -120,13 +120,22 @@ Restart Visual Studio and run again.
 
 ## Running Tests
 
-You can run tests directly from Visual Studio or through the terminal:
+To learn how to run each type of test, see the documentation specific to each one:
 
-```bash
-dotnet test
-```
+- [Testing Strategy](.docs/en/tests.md) → Unit Test and Testing Strategy
+- [Functional Tests](.docs/en/tests-functional.md) → Functional Tests
+- [Integration Tests](.docs/en/tests-integration.md) → Integration Tests
 
 ---
+
+## Documentation
+
+To access the project documentation, visit:
+
+- [Documentation](.docs/index.md)
+
+---
+
 
 ## Project Structure
 ```
@@ -137,7 +146,9 @@ src/
 ├── WebApi            → Controllers, Requests, Responses
 ├── Common/Crosscut   → Exceptions, Helpers, Validation
 tests/
-└── Unit              → Unit tests (xUnit, NSubstitute, Bogus)
+├── Unit              → Unit tests (xUnit, NSubstitute, Bogus)
+├── Functional        → Functional tests with HTTP calls
+└── Integration       → End-to-end tests with Testcontainers
 ```
 
 ## Commit Guidelines

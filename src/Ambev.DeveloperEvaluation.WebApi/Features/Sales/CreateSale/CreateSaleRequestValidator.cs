@@ -22,7 +22,6 @@ namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSale
         {
             RuleFor(i => i.ProductId).NotEmpty();
             RuleFor(i => i.ProductName).NotEmpty().MaximumLength(100);
-            RuleFor(i => i.Quantity).InclusiveBetween(1, 20);
             RuleFor(i => i.UnitPrice).GreaterThan(0);
         }
     }

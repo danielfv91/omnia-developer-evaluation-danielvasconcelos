@@ -1,8 +1,7 @@
-﻿using Ambev.DeveloperEvaluation.Application.Events;
-using Ambev.DeveloperEvaluation.Application.Sales.Events;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
 using AutoMapper;
 using MediatR;
 
@@ -13,20 +12,26 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
         private readonly ISaleRepository _saleRepository;
         private readonly IMapper _mapper;
         private readonly IEventPublisher _eventPublisher;
+        private readonly ISaleItemBuilder _saleItemBuilder;
 
-        public UpdateSaleHandler(ISaleRepository saleRepository, IMapper mapper, IEventPublisher eventPublisher)
+        public UpdateSaleHandler(
+            ISaleRepository saleRepository,
+            IMapper mapper,
+            IEventPublisher eventPublisher,
+            ISaleItemBuilder saleItemBuilder)
         {
             _saleRepository = saleRepository;
             _mapper = mapper;
             _eventPublisher = eventPublisher;
+            _saleItemBuilder = saleItemBuilder;
         }
 
         public async Task<UpdateSaleResult> Handle(UpdateSaleCommand request, CancellationToken cancellationToken)
         {
-            var sale = await _saleRepository.GetByIdAsync(request.Id);
+            var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken);
 
             if (sale == null)
-                return null;
+                throw new NotFoundException($"Sale with ID {request.Id} was not found.");
 
             sale.SaleNumber = request.SaleNumber;
             sale.SaleDate = request.SaleDate;
@@ -34,55 +39,56 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
             sale.CustomerName = request.CustomerName;
             sale.Branch = request.Branch;
 
-            sale.Items = new List<SaleItem>();
+            await PublishItemCancelledEvents(sale.Items, request.Items, sale.Id, cancellationToken);
 
-            foreach (var item in request.Items)
-            {
-                var saleItem = new SaleItem
-                {
-                    Id = Guid.NewGuid(),
-                    SaleId = sale.Id,
-                    ProductId = item.ProductId,
-                    ProductName = item.ProductName,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    TotalItemAmount = CalculateDiscountedAmount(item.Quantity, item.UnitPrice),
-                    IsCancelled = false
-                };
+            var newItems = _saleItemBuilder.Build(request.Items, sale.Id);
+            sale.Items = newItems;
+            sale.TotalAmount = _saleItemBuilder.CalculateTotalAmount(newItems);
 
-                sale.Items.Add(saleItem);
-            }
+            await _saleRepository.UpdateAsync(sale, cancellationToken);
 
-            sale.TotalAmount = sale.Items.Sum(i => i.TotalItemAmount);
-
-            await _saleRepository.UpdateAsync(sale);
-
-            var saleModifiedEvent = new SaleModifiedEvent
+            var updatedEvent = new SaleModifiedEvent
             {
                 SaleId = sale.Id,
                 SaleNumber = sale.SaleNumber,
-                TotalAmount = sale.TotalAmount
+                TotalAmount = sale.TotalAmount,
+                Timestamp = DateTime.UtcNow
             };
 
-            await _eventPublisher.PublishAsync(saleModifiedEvent);
+            await _eventPublisher.PublishAsync(updatedEvent, cancellationToken);
 
             return _mapper.Map<UpdateSaleResult>(sale);
         }
 
-        private decimal CalculateDiscountedAmount(int quantity, decimal unitPrice)
+        private async Task PublishItemCancelledEvents(
+            List<SaleItem> existingItems,
+            List<UpdateSaleItemDto> updatedItems,
+            Guid saleId,
+            CancellationToken cancellationToken)
         {
-            decimal discount = 0;
+            if (existingItems == null || existingItems.Count == 0)
+                return;
 
-            if (quantity >= 10 && quantity <= 20)
-                discount = 0.20m;
-            else if (quantity >= 4 && quantity < 10)
-                discount = 0.10m;
+            var updatedProductIds = updatedItems.Select(i => i.ProductId).ToHashSet();
 
-            if (quantity > 20)
-                throw new BusinessException("Cannot sell more than 20 identical items per product.");
+            var cancelledItems = existingItems
+                .Where(item => !updatedProductIds.Contains(item.ProductId))
+                .ToList();
 
-            var total = quantity * unitPrice;
-            return total - (total * discount);
+            foreach (var item in cancelledItems)
+            {
+                var cancelEvent = new ItemCancelledEvent
+                {
+                    SaleId = saleId,
+                    ItemId = item.Id,
+                    ProductId = item.ProductId,
+                    ProductName = item.ProductName,
+                    CancelledAt = DateTime.UtcNow,
+                    Reason = "Item removed during sale update"
+                };
+
+                await _eventPublisher.PublishAsync(cancelEvent, cancellationToken);
+            }
         }
     }
 }

@@ -1,6 +1,4 @@
 ﻿using FluentValidation;
-using System;
-using System.Linq;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.GetSales
 {
@@ -8,8 +6,8 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.GetSales
     {
         private static readonly string[] AllowedOrderFields =
         {
-        "SaleNumber", "SaleDate", "CustomerName", "Branch", "TotalAmount"
-    };
+            "SaleNumber", "SaleDate", "CustomerName", "Branch", "TotalAmount"
+        };
 
         public GetSalesValidator()
         {
@@ -36,12 +34,13 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.GetSales
                 .WithMessage("MaxDate cannot be in the future.");
         }
 
-        private bool BeValidOrder(string order)
+        private bool BeValidOrder(string? order)
         {
             if (string.IsNullOrWhiteSpace(order))
                 return true;
 
             var orderParts = order.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
             foreach (var part in orderParts)
             {
                 var trimmed = part.Trim();
@@ -51,9 +50,12 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.GetSales
                     return false;
 
                 var field = tokens[0];
-                var direction = tokens.Length == 2 ? tokens[1].ToLower() : "asc";
+                var direction = tokens.Length == 2 ? tokens[1].ToLowerInvariant() : "asc";
 
-                if (!AllowedOrderFields.Contains(field) || (direction != "asc" && direction != "desc"))
+                if (!AllowedOrderFields.Contains(field, StringComparer.OrdinalIgnoreCase))
+                    return false;
+
+                if (direction != "asc" && direction != "desc")
                     return false;
             }
 

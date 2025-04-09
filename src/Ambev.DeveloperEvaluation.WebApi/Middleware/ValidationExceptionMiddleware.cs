@@ -29,6 +29,10 @@ namespace Ambev.DeveloperEvaluation.WebApi.Middleware
             {
                 await HandleBusinessExceptionAsync(context, ex);
             }
+            catch (NotFoundException ex)
+            {
+                await HandleNotFoundExceptionAsync(context, ex);
+            }
         }
 
         private static Task HandleValidationExceptionAsync(HttpContext context, ValidationException exception)
@@ -65,6 +69,32 @@ namespace Ambev.DeveloperEvaluation.WebApi.Middleware
             new ValidationErrorDetail
             {
                 Error = "BusinessException",
+                Detail = exception.Message
+            }
+        }
+            };
+
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            return context.Response.WriteAsync(JsonSerializer.Serialize(response, jsonOptions));
+        }
+        private static Task HandleNotFoundExceptionAsync(HttpContext context, NotFoundException exception)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = "Resource not found",
+                Errors = new[]
+                {
+            new ValidationErrorDetail
+            {
+                Error = "NotFoundException",
                 Detail = exception.Message
             }
         }

@@ -121,9 +121,9 @@ Reinicie o Visual Studio e execute novamente.
 
 Para ver como rodar cada tipo de teste, consulte a documentação específica de cada um:
 
-- [Estratégia de Testes](.docs/pt/tests.md) → Testes Unitários e Estratégia de Testes  
-- [Testes Funcionais](.docs/pt/tests-functional.md) → Testes Funcionais  
-- [Testes de Integração](.docs/pt/tests-integration.md) → Testes de Integração  
+- [Estratégia de Testes](docs/pt/tests.md) → Testes Unitários e Estratégia de Testes  
+- [Testes Funcionais](docs/pt/tests-functional.md) → Testes Funcionais  
+- [Testes de Integração](docs/pt/tests-integration.md) → Testes de Integração  
 
 ---
 
@@ -131,7 +131,7 @@ Para ver como rodar cada tipo de teste, consulte a documentação específica de
 
 Para ver as documentações do projeto, acesse:
 
-- [Documentação](.docs/index.md)
+- [Documentação](docs/index.md)
 
 ---
 

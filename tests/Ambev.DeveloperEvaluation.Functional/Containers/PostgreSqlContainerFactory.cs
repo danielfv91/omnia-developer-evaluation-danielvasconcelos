@@ -11,10 +11,10 @@ namespace Ambev.DeveloperEvaluation.Functional.Containers
             try
             {
                 _container = new PostgreSqlBuilder()
-                    .WithImage("postgres")
+                    .WithImage("postgres:latest")
                     .WithCleanUp(true)
-                    .WithName("ambev-postgres-integration-test")
-                    .WithDatabase("developer_evaluation_test")
+                    .WithName("functional-tests-db")
+                    .WithDatabase("developer_functional_evaluation_test")
                     .WithUsername("postgres")
                     .WithPassword("postgres")
                     .WithPortBinding(5433, 5432)

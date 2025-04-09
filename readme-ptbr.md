@@ -117,27 +117,38 @@ Reinicie o Visual Studio e execute novamente.
 
 ---
 
-## Executando os Testes
+## Execução dos Testes
 
-Você pode rodar os testes diretamente pelo Visual Studio ou pelo terminal:
+Para ver como rodar cada tipo de teste, consulte a documentação específica de cada um:
 
-```bash
-dotnet test
-```
+- [Estratégia de Testes](.docs/pt/tests.md) → Testes Unitários e Estratégia de Testes  
+- [Testes Funcionais](.docs/pt/tests-functional.md) → Testes Funcionais  
+- [Testes de Integração](.docs/pt/tests-integration.md) → Testes de Integração  
+
+---
+
+## Documentação
+
+Para ver as documentações do projeto, acesse:
+
+- [Documentação](.docs/index.md)
 
 ---
 
 ## Estrutura do Projeto
 ```
 src/
-├── Application       → Regras de negócio (MediatR Handlers, Commands)
+├── Application       → Regras de negócio (Handlers MediatR, Commands)
 ├── Domain            → Entidades e Interfaces (DDD)
 ├── ORM               → Contexto EF Core e Repositórios
 ├── WebApi            → Controllers, Requests, Responses
-├── Common/Crosscut   → Exceções, Helpers, Validação
+├── Common/Crosscut   → Exceptions, Helpers, Validações
 tests/
-└── Unit              → Testes unitários (xUnit, NSubstitute, Bogus)
+├── Unit              → Testes unitários (xUnit, NSubstitute, Bogus)
+├── Functional        → Testes funcionais com chamadas HTTP
+└── Integration       → Testes de ponta a ponta com Testcontainers
 ```
+
 
 ## Padrão de Commits
 Commits semânticos em português:

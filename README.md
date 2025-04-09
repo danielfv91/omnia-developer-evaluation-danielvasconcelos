@@ -122,9 +122,9 @@ Restart Visual Studio and run again.
 
 To learn how to run each type of test, see the documentation specific to each one:
 
-- [Testing Strategy](.docs/en/tests.md) → Unit Test and Testing Strategy
-- [Functional Tests](.docs/en/tests-functional.md) → Functional Tests
-- [Integration Tests](.docs/en/tests-integration.md) → Integration Tests
+- [Testing Strategy](docs/en/tests.md) → Unit Test and Testing Strategy
+- [Functional Tests](docs/en/tests-functional.md) → Functional Tests
+- [Integration Tests](docs/en/tests-integration.md) → Integration Tests
 
 ---
 
@@ -132,9 +132,8 @@ To learn how to run each type of test, see the documentation specific to each on
 
 To access the project documentation, visit:
 
-- [Documentation](.docs/index.md)
+- [Documentation](docs/index.md)
 
----
 
 
 ## Project Structure

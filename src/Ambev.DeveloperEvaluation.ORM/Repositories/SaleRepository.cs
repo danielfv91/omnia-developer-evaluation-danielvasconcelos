@@ -79,42 +79,11 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
                 .Include(s => s.Items)
                 .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(branch))
-                query = query.Where(s => s.Branch.ToLower().Contains(branch.ToLower()));
-
-            if (minDate.HasValue)
-                query = query.Where(s => s.SaleDate >= minDate.Value);
-
-            if (maxDate.HasValue)
-                query = query.Where(s => s.SaleDate <= maxDate.Value);
+            query = ApplyBranchFilter(query, branch);
+            query = ApplyDateFilters(query, minDate, maxDate);
+            query = ApplyOrdering(query, order);
 
             var totalItems = await query.CountAsync(cancellationToken);
-
-            if (!string.IsNullOrWhiteSpace(order))
-            {
-                var orderParams = order.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                bool firstOrder = true;
-
-                foreach (var param in orderParams)
-                {
-                    var trimmed = param.Trim();
-                    var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    var property = parts[0];
-                    var direction = parts.Length > 1 ? parts[1].ToLower() : "asc";
-
-                    var orderExpression = $"{property} {direction}";
-
-                    query = firstOrder
-                        ? query.OrderBy(orderExpression)
-                        : ((IOrderedQueryable<Sale>)query).ThenBy(orderExpression);
-
-                    firstOrder = false;
-                }
-            }
-            else
-            {
-                query = query.OrderByDescending(s => s.SaleDate);
-            }
 
             var sales = await query
                 .Skip((page - 1) * size)
@@ -123,6 +92,61 @@ namespace Ambev.DeveloperEvaluation.ORM.Repositories
 
             return (sales, totalItems);
         }
+
+        #region ---- Local Functions ----
+
+        private static IQueryable<Sale> ApplyBranchFilter(IQueryable<Sale> source, string branch)
+        {
+            if (string.IsNullOrWhiteSpace(branch))
+                return source;
+
+            var lowerBranch = branch.ToLower();
+            return source.Where(s => s.Branch.ToLower().Contains(lowerBranch));
+        }
+
+        private static IQueryable<Sale> ApplyDateFilters(IQueryable<Sale> source, DateTime? min, DateTime? max)
+        {
+            if (min.HasValue)
+                source = source.Where(s => s.SaleDate >= min.Value);
+
+            if (max.HasValue)
+            {
+                var endOfDay = max.Value.TimeOfDay == TimeSpan.Zero
+                    ? max.Value.Date.AddDays(1).AddTicks(-1)
+                    : max.Value;
+
+                source = source.Where(s => s.SaleDate <= endOfDay);
+            }
+
+            return source;
+        }
+
+        private static IQueryable<Sale> ApplyOrdering(IQueryable<Sale> source, string order)
+        {
+            if (string.IsNullOrWhiteSpace(order))
+                return source.OrderByDescending(s => s.SaleDate);
+
+            var orderParams = order.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            bool isFirst = true;
+
+            foreach (var param in orderParams)
+            {
+                var parts = param.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var property = parts[0];
+                var direction = parts.Length > 1 ? parts[1].ToLower() : "asc";
+                var orderExpr = $"{property} {direction}";
+
+                source = isFirst
+                    ? source.OrderBy(orderExpr)
+                    : ((IOrderedQueryable<Sale>)source).ThenBy(orderExpr);
+
+                isFirst = false;
+            }
+
+            return source;
+        }
+
+        #endregion
 
     }
 }

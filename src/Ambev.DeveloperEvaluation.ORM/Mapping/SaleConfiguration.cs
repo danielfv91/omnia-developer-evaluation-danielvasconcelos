@@ -34,6 +34,11 @@ namespace Ambev.DeveloperEvaluation.ORM.Mapping
             builder.Property(s => s.IsCancelled)
                 .IsRequired();
 
+            builder.Property(s => s.CreatedAt)
+                .IsRequired();
+
+            builder.Property(s => s.UpdatedAt);
+
             builder.HasMany(s => s.Items)
                 .WithOne()
                 .HasForeignKey(i => i.SaleId)

@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
+using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Common.Validation;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using FluentValidation;
@@ -34,6 +35,16 @@ public class ExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.Warning(ex, "Resource not found: {Message}", ex.Message);
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsJsonAsync(new ApiResponse
+            {
+                Success = false,
+                Message = ex.Message
+            });
         }
         catch (ValidationException ex)
         {

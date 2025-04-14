@@ -1,53 +1,46 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
-using Ambev.DeveloperEvaluation.Unit.Sales.TestData;
+using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
+using Ambev.DeveloperEvaluation.Domain.Events.Sale;
+using Ambev.DeveloperEvaluation.Unit.Sales.TestData;
+using FluentAssertions;
 using NSubstitute;
 using Xunit;
+using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
 
+namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers
+public class DeleteSaleHandlerTests
 {
-    public class DeleteSaleHandlerTests
+    private readonly ISaleRepository _saleRepository = Substitute.For<ISaleRepository>();
+    private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
+
+    [Fact]
+    public async Task Handle_Should_CancelSale_And_Publish_SaleCancelledEvent()
     {
-        private readonly ISaleRepository _saleRepository = Substitute.For<ISaleRepository>();
-        private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
+        var sale = SaleFakerBuilder.GenerateValidSale();
+        _saleRepository.GetByIdAsync(sale.Id).Returns(sale);
 
-        [Fact]
-        public async Task Handle_Should_DeleteSale_WhenSaleExists()
-        {
-            // Arrange
-            var existingSale = SaleFakerBuilder.GenerateValidSale();
-            _saleRepository.GetByIdAsync(existingSale.Id).Returns(existingSale);
+        var handler = new DeleteSaleHandler(_saleRepository, _eventPublisher);
+        var result = await handler.Handle(new DeleteSaleCommand(sale.Id), CancellationToken.None);
 
-            var command = new DeleteSaleCommand(existingSale.Id);
-            var handler = new DeleteSaleHandler(_saleRepository, _eventPublisher);
+        result.Should().BeTrue();
 
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
+        await _eventPublisher.Received(1).PublishAsync(Arg.Is<SaleCancelledDomainEvent>(e =>
+            e.SaleId == sale.Id &&
+            e.Reason == "Deleted via API"));
+    }
 
-            // Assert
-            Assert.True(result);
-            await _saleRepository.Received(1).DeleteAsync(existingSale.Id);
-        }
+    [Fact]
+    public async Task Handle_Should_ThrowNotFoundException_WhenSaleMissing()
+    {
+        var id = Guid.NewGuid();
+        _saleRepository.GetByIdAsync(id).Returns((Sale?)null);
 
-        [Fact]
-        public async Task Handle_Should_ReturnFalse_WhenSaleDoesNotExist()
-        {
-            // Arrange
-            var fakeId = Guid.NewGuid();
+        var handler = new DeleteSaleHandler(_saleRepository, _eventPublisher);
+        Func<Task> act = async () => await handler.Handle(new DeleteSaleCommand(id), CancellationToken.None);
 
-            _saleRepository.GetByIdAsync(fakeId)
-                   .Returns(ci => Task.FromResult<Sale>(null!));
-
-            var command = new DeleteSaleCommand(fakeId);
-            var handler = new DeleteSaleHandler(_saleRepository, _eventPublisher);
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            Assert.False(result);
-            await _saleRepository.DidNotReceive().DeleteAsync(Arg.Any<Guid>());
-        }
+        await act.Should().ThrowAsync<NotFoundException>();
+        await _eventPublisher.DidNotReceive().PublishAsync(Arg.Any<SaleCancelledDomainEvent>(), Arg.Any<CancellationToken>());
     }
 }

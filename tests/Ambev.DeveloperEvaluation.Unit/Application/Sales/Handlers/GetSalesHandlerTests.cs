@@ -2,6 +2,7 @@
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Unit.Sales.TestData;
 using AutoMapper;
+using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -22,8 +23,8 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers
             {
                 cfg.CreateMap<Sale, SaleListItemDto>();
             });
-            _mapper = config.CreateMapper();
 
+            _mapper = config.CreateMapper();
             _handler = new GetSalesHandler(_saleRepository, _mapper);
         }
 
@@ -31,32 +32,31 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.Handlers
         public async Task Handle_Should_ReturnPagedSalesSuccessfully()
         {
             // Arrange
-            var branch = "Branch Test";
-            var fakeSales = Enumerable.Range(0, 5)
-                .Select(_ => SaleFakerBuilder.GenerateValidSaleWithItems())
-                .ToList();
-
-            _saleRepository.GetSalesPagedAsync(1, 10, "SaleDate desc", branch, null, null)
-                .Returns((fakeSales, fakeSales.Count));
-
             var query = new GetSalesQuery
             {
                 Page = 1,
                 Size = 10,
                 Order = "SaleDate desc",
-                Branch = branch
+                Branch = "Test Branch"
             };
+
+            var fakeSales = Enumerable.Range(0, 5)
+                .Select(_ => SaleFakerBuilder.GenerateValidSaleWithItems())
+                .ToList();
+
+            _saleRepository
+                .GetSalesPagedAsync(query.Page, query.Size, query.Order, query.Branch, query.MinDate, query.MaxDate)
+                .Returns((fakeSales, fakeSales.Count));
 
             // Act
             var result = await _handler.Handle(query, CancellationToken.None);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(fakeSales.Count, result.TotalItems);
-            Assert.Equal(fakeSales.Count, result.Data.Count());
-            Assert.Equal(1, result.CurrentPage);
-            Assert.Equal(1, result.TotalPages);
+            result.Should().NotBeNull();
+            result.CurrentPage.Should().Be(1);
+            result.TotalItems.Should().Be(fakeSales.Count);
+            result.TotalPages.Should().Be(1);
+            result.Data.Should().HaveCount(fakeSales.Count);
         }
     }
-
 }

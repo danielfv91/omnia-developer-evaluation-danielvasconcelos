@@ -7,37 +7,39 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ambev.DeveloperEvaluation.Functional.Factory;
-
-public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+namespace Ambev.DeveloperEvaluation.Functional.Factory
 {
-    public string ConnectionString { get; set; } = default!;
 
-    public CustomWebApplicationFactory(string connectionString)
+    public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
-        ConnectionString = connectionString;
-    }
+        public string ConnectionString { get; set; } = default!;
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        Console.WriteLine("Configuring WebHost...");
-
-        builder.ConfigureAppConfiguration((context, config) =>
+        public CustomWebApplicationFactory(string connectionString)
         {
-            config.AddEnvironmentVariables();
-        });
+            ConnectionString = connectionString;
+        }
 
-        builder.ConfigureServices((context, services) =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            Console.WriteLine("Replacing DefaultContext with test container connection string...");
-            ConnectionString = context.Configuration.GetConnectionString("DefaultConnection")!;
+            Console.WriteLine("Configuring WebHost...");
 
-            services.RemoveDbContext<DefaultContext>();
-
-            services.AddDbContext<DefaultContext>(options =>
+            builder.ConfigureAppConfiguration((context, config) =>
             {
-                options.UseNpgsql(ConnectionString);
+                config.AddEnvironmentVariables();
             });
-        });
+
+            builder.ConfigureServices((context, services) =>
+            {
+                Console.WriteLine("Replacing DefaultContext with test container connection string...");
+                ConnectionString = context.Configuration.GetConnectionString("DefaultConnection")!;
+
+                services.RemoveDbContext<DefaultContext>();
+
+                services.AddDbContext<DefaultContext>(options =>
+                {
+                    options.UseNpgsql(ConnectionString);
+                });
+            });
+        }
     }
 }

@@ -1,5 +1,4 @@
-﻿using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
-using MediatR;
+﻿using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
 {
@@ -14,7 +13,7 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
         public List<UpdateSaleItemDto> Items { get; set; } = [];
     }
 
-    public class UpdateSaleItemDto : ISaleItemInput
+    public class UpdateSaleItemDto
     {
         public Guid ProductId { get; set; }
         public string ProductName { get; set; }

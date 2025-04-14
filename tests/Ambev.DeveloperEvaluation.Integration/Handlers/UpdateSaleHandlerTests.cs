@@ -1,158 +1,136 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
-using Ambev.DeveloperEvaluation.Application.Events.Sales;
-using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
-using Ambev.DeveloperEvaluation.Common.Validation;
+using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Domain.Services.Interfaces;
+using Ambev.DeveloperEvaluation.Domain.Events.Sale;
 using Ambev.DeveloperEvaluation.Integration.Builders;
 using Ambev.DeveloperEvaluation.Integration.Common;
+using Ambev.DeveloperEvaluation.Integration.Mocks;
 using Ambev.DeveloperEvaluation.ORM;
-using Ambev.DeveloperEvaluation.ORM.Repositories;
-using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Xunit;
 
-namespace Ambev.DeveloperEvaluation.Integration.Handlers;
-
-public class UpdateSaleHandlerTests : IClassFixture<IntegrationTestFixture>
+namespace Ambev.DeveloperEvaluation.Integration.Handlers
 {
-    private readonly IServiceProvider _provider;
 
-    public UpdateSaleHandlerTests(IntegrationTestFixture fixture)
+    public class UpdateSaleHandlerTests : IClassFixture<IntegrationTestFixture>
     {
-        _provider = fixture.ServiceProvider;
-    }
+        private readonly IServiceProvider _provider;
 
-    [Fact]
-    public async Task UpdateSale_Should_UpdateSaleSuccessfully_WithDiscountApplied()
-    {
-        var context = _provider.GetRequiredService<DefaultContext>();
-        var publisher = Substitute.For<IEventPublisher>();
-        var itemBuilder = _provider.GetRequiredService<ISaleItemBuilder>();
-        var mediator = BuildMediator(publisher, itemBuilder);
+        public UpdateSaleHandlerTests(IntegrationTestFixture fixture)
+        {
+            _provider = fixture.ServiceProvider;
+        }
 
-        var sale = SaleUpdateFakerBuilder.CreateValidEntity(5, 10m);
-        await context.Sales.AddAsync(sale);
-        await context.SaveChangesAsync();
+        [Fact]
+        public async Task UpdateSale_Should_Update_WithDiscount_And_RaiseDomainEvent()
+        {
+            var context = _provider.GetRequiredService<DefaultContext>();
+            var mediator = _provider.GetRequiredService<IMediator>();
+            var eventPublisher = _provider.GetRequiredService<IEventPublisher>() as IEventPublisherMock;
+            eventPublisher!.Reset();
 
-        var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 10, 20m);
+            var sale = SaleUpdateFakerBuilder.CreateValidEntity(5, 10m);
+            await context.Sales.AddAsync(sale);
+            await context.SaveChangesAsync();
 
-        var result = await mediator.Send(command);
+            var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 10, 20m);
+            var result = await mediator.Send(command);
 
-        result.TotalAmount.Should().Be(160);
+            result.TotalAmount.Should().Be(160);
 
-        await publisher.Received(1).PublishAsync(Arg.Is<SaleModifiedEvent>(e =>
-            e.SaleId == sale.Id &&
-            e.TotalAmount == 160), Arg.Any<CancellationToken>());
-    }
+            eventPublisher.PublishedEvents
+                .OfType<SaleModifiedDomainEvent>()
+                .Should().ContainSingle(e =>
+                    e.SaleId == sale.Id &&
+                    e.TotalAmount == 160);
+        }
 
-    [Fact]
-    public async Task UpdateSale_Should_NotApplyDiscount_WhenQuantityIsBelowFour()
-    {
-        var context = _provider.GetRequiredService<DefaultContext>();
-        var publisher = Substitute.For<IEventPublisher>();
-        var itemBuilder = _provider.GetRequiredService<ISaleItemBuilder>();
-        var mediator = BuildMediator(publisher, itemBuilder);
+        [Fact]
+        public async Task UpdateSale_Should_NotApplyDiscount_When_Quantity_IsLessThan4()
+        {
+            var context = _provider.GetRequiredService<DefaultContext>();
+            var mediator = _provider.GetRequiredService<IMediator>();
 
-        var sale = SaleUpdateFakerBuilder.CreateValidEntity(1, 10m);
-        await context.Sales.AddAsync(sale);
-        await context.SaveChangesAsync();
+            var sale = SaleUpdateFakerBuilder.CreateValidEntity(3, 10m);
+            await context.Sales.AddAsync(sale);
+            await context.SaveChangesAsync();
 
-        var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 2, 10m);
+            var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 2, 10m);
 
-        var result = await mediator.Send(command);
+            var result = await mediator.Send(command);
 
-        result.TotalAmount.Should().Be(20);
-    }
+            result.TotalAmount.Should().Be(20);
+        }
 
-    [Fact]
-    public async Task UpdateSale_Should_ApplyTwentyPercentDiscount_WhenQuantityIsAtLeastTen()
-    {
-        var context = _provider.GetRequiredService<DefaultContext>();
-        var publisher = Substitute.For<IEventPublisher>();
-        var itemBuilder = _provider.GetRequiredService<ISaleItemBuilder>();
-        var mediator = BuildMediator(publisher, itemBuilder);
+        [Fact]
+        public async Task UpdateSale_Should_Apply_20PercentDiscount_When_Quantity_Is_10()
+        {
+            var context = _provider.GetRequiredService<DefaultContext>();
+            var mediator = _provider.GetRequiredService<IMediator>();
 
-        var sale = SaleUpdateFakerBuilder.CreateValidEntity(1, 10m);
-        await context.Sales.AddAsync(sale);
-        await context.SaveChangesAsync();
+            var sale = SaleUpdateFakerBuilder.CreateValidEntity(3, 10m);
+            await context.Sales.AddAsync(sale);
+            await context.SaveChangesAsync();
 
-        var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 10, 10m);
+            var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 10, 10m);
 
-        var result = await mediator.Send(command);
+            var result = await mediator.Send(command);
 
-        result.TotalAmount.Should().Be(80);
-    }
+            result.TotalAmount.Should().Be(80);
+        }
 
-    [Fact]
-    public async Task UpdateSale_Should_ThrowValidationException_WhenQuantityExceedsTwenty()
-    {
-        var mediator = _provider.GetRequiredService<IMediator>();
-        var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 21, 10m);
+        [Fact]
+        public async Task UpdateSale_Should_ThrowValidationException_When_Quantity_Exceeds_20()
+        {
+            var mediator = _provider.GetRequiredService<IMediator>();
 
-        Func<Task> act = async () => await mediator.Send(command);
+            var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 21, 10m);
 
-        await act.Should().ThrowAsync<ValidationException>()
-            .Where(ex => ex.Errors.Any(e => e.ErrorMessage.Contains("Cannot sell more than 20")));
-    }
+            Func<Task> act = async () => await mediator.Send(command);
 
+            await act.Should().ThrowAsync<ValidationException>()
+                .Where(ex => ex.Errors.Any(e => e.ErrorMessage.Contains("Cannot sell more than 20 identical items")));
+        }
 
-    [Fact]
-    public async Task UpdateSale_Should_ThrowNotFoundException_WhenSaleDoesNotExist()
-    {
-        var publisher = Substitute.For<IEventPublisher>();
-        var itemBuilder = _provider.GetRequiredService<ISaleItemBuilder>();
-        var mediator = BuildMediator(publisher, itemBuilder);
+        [Fact]
+        public async Task UpdateSale_Should_Throw_NotFoundException_When_Sale_DoesNotExist()
+        {
+            var mediator = _provider.GetRequiredService<IMediator>();
 
-        var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1, 10m);
+            var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(Guid.NewGuid(), 1, 10m);
 
-        Func<Task> act = async () => await mediator.Send(command);
+            Func<Task> act = async () => await mediator.Send(command);
 
-        await act.Should().ThrowAsync<Exception>()
-            .WithMessage("*not found*");
-    }
+            await act.Should().ThrowAsync<NotFoundException>()
+                .WithMessage("*not found*");
+        }
 
-    [Fact]
-    public async Task UpdateSale_Should_PublishItemCancelledEvent_WhenItemIsRemoved()
-    {
-        var context = _provider.GetRequiredService<DefaultContext>();
-        var publisher = Substitute.For<IEventPublisher>();
-        var itemBuilder = _provider.GetRequiredService<ISaleItemBuilder>();
-        var mediator = BuildMediator(publisher, itemBuilder);
+        [Fact]
+        public async Task UpdateSale_Should_Raise_ItemCancelledDomainEvent_When_Item_Removed()
+        {
+            var context = _provider.GetRequiredService<DefaultContext>();
+            var mediator = _provider.GetRequiredService<IMediator>();
+            var eventPublisher = _provider.GetRequiredService<IEventPublisher>() as IEventPublisherMock;
+            eventPublisher!.Reset();
 
-        var sale = SaleUpdateFakerBuilder.CreateValidEntity(3, 10m);
-        var originalItem = sale.Items.First();
+            var sale = SaleUpdateFakerBuilder.CreateValidEntity(3, 10m);
+            var removedItem = sale.Items.First();
 
-        await context.Sales.AddAsync(sale);
-        await context.SaveChangesAsync();
+            await context.Sales.AddAsync(sale);
+            await context.SaveChangesAsync();
 
-        var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 1, 10m);
-        command.Items[0].ProductId = Guid.NewGuid();
+            var command = SaleUpdateFakerBuilder.CreateValidUpdateCommand(sale.Id, 1, 10m);
+            command.Items[0].ProductId = Guid.NewGuid();
 
-        await mediator.Send(command);
+            await mediator.Send(command);
 
-        await publisher.Received(1).PublishAsync(Arg.Is<ItemCancelledEvent>(e =>
-            e.ProductName == originalItem.ProductName), Arg.Any<CancellationToken>());
-    }
+            eventPublisher.PublishedEvents
+                .OfType<ItemCancelledDomainEvent>()
+                .Should().ContainSingle(e => e.ProductId == removedItem.ProductId);
+        }
 
-    private IMediator BuildMediator(IEventPublisher publisher, ISaleItemBuilder itemBuilder)
-    {
-        var services = new ServiceCollection();
-
-        services.AddSingleton(_provider.GetRequiredService<DefaultContext>());
-        services.AddScoped<ISaleRepository, SaleRepository>();
-        services.AddScoped(_ => publisher);
-        services.AddScoped(_ => itemBuilder);
-        services.AddAutoMapper(typeof(UpdateSaleCommand).Assembly);
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<UpdateSaleCommand>());
-        services.AddValidatorsFromAssemblyContaining<UpdateSaleValidator>();
-        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
-        return services.BuildServiceProvider().GetRequiredService<IMediator>();
     }
 }

@@ -11,5 +11,6 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale
         public string Branch { get; set; }
         public decimal TotalAmount { get; set; }
         public bool IsCancelled { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

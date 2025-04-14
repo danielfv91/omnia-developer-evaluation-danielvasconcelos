@@ -1,88 +1,74 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
-using Ambev.DeveloperEvaluation.Application.Events.Sales;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
-using Ambev.DeveloperEvaluation.Common.Validation;
+using Ambev.DeveloperEvaluation.Common.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Entities;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Domain.Events.Sale;
 using Ambev.DeveloperEvaluation.Integration.Common;
+using Ambev.DeveloperEvaluation.Integration.Mocks;
 using Ambev.DeveloperEvaluation.ORM;
-using Ambev.DeveloperEvaluation.ORM.Repositories;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
 using Xunit;
 
-namespace Ambev.DeveloperEvaluation.Integration.Handlers;
-
-public class DeleteSaleHandlerTests : IClassFixture<IntegrationTestFixture>
+namespace Ambev.DeveloperEvaluation.Integration.Handlers
 {
-    private readonly IServiceProvider _provider;
 
-    public DeleteSaleHandlerTests(IntegrationTestFixture fixture)
+    public class DeleteSaleHandlerTests : IClassFixture<IntegrationTestFixture>
     {
-        _provider = fixture.ServiceProvider;
-    }
+        private readonly IServiceProvider _provider;
 
-    [Fact]
-    public async Task DeleteSale_Should_DeleteExistingSale_AndPublishEvent()
-    {
-        // Arrange
-        var context = _provider.GetRequiredService<DefaultContext>();
-        var publisher = Substitute.For<IEventPublisher>();
-        var mediator = BuildMediator(publisher);
-
-        var sale = new Sale
+        public DeleteSaleHandlerTests(IntegrationTestFixture fixture)
         {
-            Id = Guid.NewGuid(),
-            SaleNumber = 1234,
-            SaleDate = DateTime.UtcNow,
-            CustomerId = Guid.NewGuid(),
-            CustomerName = "Customer A",
-            Branch = "Branch A",
-            Items = new List<SaleItem>()
-        };
+            _provider = fixture.ServiceProvider;
+        }
 
-        await context.Sales.AddAsync(sale);
-        await context.SaveChangesAsync();
+        [Fact]
+        public async Task DeleteSale_Should_DeleteExistingSale_AndRaiseDomainEvent()
+        {
+            var context = _provider.GetRequiredService<DefaultContext>();
+            var mediator = _provider.GetRequiredService<IMediator>();
+            var eventPublisher = _provider.GetRequiredService<IEventPublisher>() as IEventPublisherMock;
+            eventPublisher!.Reset();
 
-        var command = new DeleteSaleCommand(sale.Id);
+            var sale = Sale.Create(
+                saleNumber: 1234,
+                saleDate: DateTime.UtcNow,
+                customerId: Guid.NewGuid(),
+                customerName: "Customer A",
+                branch: "Branch A",
+                items: new List<SaleItemInput>()
+            );
 
-        // Act
-        var result = await mediator.Send(command);
+            await context.Sales.AddAsync(sale);
+            await context.SaveChangesAsync();
 
-        // Assert
-        result.Should().BeTrue();
+            var command = new DeleteSaleCommand(sale.Id);
+            var result = await mediator.Send(command);
 
-        await publisher.Received(1).PublishAsync(Arg.Is<SaleCancelledEvent>(e =>
-            e.SaleId == sale.Id && e.Reason == "Deleted via API"), Arg.Any<CancellationToken>());
-    }
+            result.Should().BeTrue();
 
-    [Fact]
-    public async Task DeleteSale_Should_ReturnFalse_WhenSaleDoesNotExist()
-    {
-        var publisher = Substitute.For<IEventPublisher>();
-        var mediator = BuildMediator(publisher);
+            eventPublisher.PublishedEvents
+                .OfType<SaleCancelledDomainEvent>()
+                .Should().ContainSingle(e => e.SaleId == sale.Id && e.Reason == "Deleted via API");
+        }
 
-        var command = new DeleteSaleCommand(Guid.NewGuid());
+        [Fact]
+        public async Task DeleteSale_Should_ThrowNotFoundException_WhenSaleDoesNotExist()
+        {
+            // Arrange
+            var mediator = _provider.GetRequiredService<IMediator>();
+            var nonExistentId = Guid.NewGuid();
+            var command = new DeleteSaleCommand(nonExistentId);
 
-        var result = await mediator.Send(command);
+            // Act
+            Func<Task> act = async () => await mediator.Send(command);
 
-        result.Should().BeFalse();
+            // Assert
+            await act.Should().ThrowAsync<NotFoundException>()
+                .WithMessage($"*{nonExistentId}*");
 
-        await publisher.DidNotReceive().PublishAsync(Arg.Any<SaleCancelledEvent>(), Arg.Any<CancellationToken>());
-    }
+        }
 
-    private IMediator BuildMediator(IEventPublisher publisher)
-    {
-        var services = new ServiceCollection();
-
-        services.AddSingleton(_provider.GetRequiredService<DefaultContext>());
-        services.AddScoped<ISaleRepository, SaleRepository>();
-        services.AddScoped(_ => publisher);
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<DeleteSaleCommand>());
-        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
-        return services.BuildServiceProvider().GetRequiredService<IMediator>();
     }
 }

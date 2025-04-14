@@ -5,92 +5,96 @@ using Bogus;
 
 namespace Ambev.DeveloperEvaluation.Unit.Sales.TestData
 {
+
     public static class SaleFakerBuilder
     {
+        private static readonly Faker Faker = new();
+
         public static CreateSaleCommand CreateValidCreateCommand(int items = 1)
         {
-            var faker = new Faker();
             return new CreateSaleCommand
             {
-                SaleNumber = faker.Random.Int(1000, 9999),
+                SaleNumber = Faker.Random.Int(1000, 9999),
                 CustomerId = Guid.NewGuid(),
-                CustomerName = faker.Name.FullName(),
-                Branch = faker.Company.CompanyName(),
-                SaleDate = faker.Date.Recent(),
-                Items = Enumerable.Range(1, items).Select(_ => new CreateSaleItemDto
-                {
-                    ProductId = Guid.NewGuid(),
-                    ProductName = faker.Commerce.ProductName(),
-                    Quantity = faker.Random.Int(1, 10),
-                    UnitPrice = faker.Random.Decimal(10, 100)
-                }).ToList()
+                CustomerName = Faker.Name.FullName(),
+                Branch = Faker.Company.CompanyName(),
+                SaleDate = Faker.Date.Recent(),
+                Items = GenerateCreateSaleItems(items)
             };
         }
 
-        public static UpdateSaleCommand CreateValidUpdateCommand(Guid saleId, int items = 1)
+        public static UpdateSaleCommand CreateValidUpdateCommand(Guid saleId, int quantity, decimal unitPrice)
         {
             var faker = new Faker();
+
             return new UpdateSaleCommand
             {
                 Id = saleId,
                 SaleNumber = faker.Random.Int(1000, 9999),
-                SaleDate = faker.Date.Recent(),
+                SaleDate = DateTime.UtcNow,
                 CustomerId = Guid.NewGuid(),
-                CustomerName = faker.Name.FullName(),
+                CustomerName = faker.Person.FullName,
                 Branch = faker.Company.CompanyName(),
-                Items = Enumerable.Range(1, items).Select(_ => new UpdateSaleItemDto
-                {
-                    ProductId = Guid.NewGuid(),
-                    ProductName = faker.Commerce.ProductName(),
-                    Quantity = faker.Random.Int(1, 10),
-                    UnitPrice = faker.Random.Decimal(10, 100)
-                }).ToList()
+                Items = new List<UpdateSaleItemDto>
+        {
+            new()
+            {
+                ProductId = Guid.NewGuid(),
+                ProductName = faker.Commerce.ProductName(),
+                Quantity = quantity,
+                UnitPrice = unitPrice
+            }
+        }
             };
         }
 
         public static Sale GenerateValidSale()
         {
-            var faker = new Faker();
-            return new Sale
-            {
-                Id = Guid.NewGuid(),
-                SaleNumber = faker.Random.Int(1000, 9999),
-                SaleDate = faker.Date.Recent(),
-                CustomerId = Guid.NewGuid(),
-                CustomerName = faker.Name.FullName(),
-                Branch = faker.Company.CompanyName(),
-                Items = new List<SaleItem>(),
-                TotalAmount = 0
-            };
+            return Sale.Create(
+                saleNumber: Faker.Random.Int(1000, 9999),
+                saleDate: Faker.Date.Recent(),
+                customerId: Guid.NewGuid(),
+                customerName: Faker.Name.FullName(),
+                branch: Faker.Company.CompanyName(),
+                items: GenerateSaleItemInputs(1)
+            );
         }
 
         public static Sale GenerateValidSaleWithItems(int items = 1)
         {
-            var faker = new Faker();
-            var saleId = Guid.NewGuid();
+            return Sale.Create(
+                saleNumber: Faker.Random.Int(1000, 9999),
+                saleDate: Faker.Date.Recent(),
+                customerId: Guid.NewGuid(),
+                customerName: Faker.Name.FullName(),
+                branch: Faker.Company.CompanyName(),
+                items: GenerateSaleItemInputs(items)
+            );
+        }
 
-            return new Sale
-            {
-                Id = saleId,
-                SaleNumber = faker.Random.Int(1000, 9999),
-                SaleDate = faker.Date.Recent(),
-                CustomerId = Guid.NewGuid(),
-                CustomerName = faker.Name.FullName(),
-                Branch = faker.Company.CompanyName(),
-                Items = Enumerable.Range(1, items).Select(_ => new SaleItem
+        private static List<CreateSaleItemDto> GenerateCreateSaleItems(int count)
+        {
+            return Enumerable.Range(0, count)
+                .Select(_ => new CreateSaleItemDto
                 {
-                    Id = Guid.NewGuid(),
-                    SaleId = saleId,
                     ProductId = Guid.NewGuid(),
-                    ProductName = faker.Commerce.ProductName(),
-                    Quantity = faker.Random.Int(1, 5),
-                    UnitPrice = faker.Random.Decimal(10, 50),
-                    DiscountPercentage = 0,
-                    TotalItemAmount = faker.Random.Decimal(10, 200),
-                    IsCancelled = false
-                }).ToList(),
-                TotalAmount = faker.Random.Decimal(100, 500)
-            };
+                    ProductName = Faker.Commerce.ProductName(),
+                    Quantity = Faker.Random.Int(1, 10),
+                    UnitPrice = Faker.Random.Decimal(10, 100)
+                })
+                .ToList();
+        }
+
+        private static IEnumerable<SaleItemInput> GenerateSaleItemInputs(int count)
+        {
+            return Enumerable.Range(0, count)
+                .Select(_ => new SaleItemInput
+                {
+                    ProductId = Guid.NewGuid(),
+                    ProductName = Faker.Commerce.ProductName(),
+                    Quantity = Faker.Random.Int(1, 10),
+                    UnitPrice = Faker.Random.Decimal(10, 100)
+                });
         }
     }
 }

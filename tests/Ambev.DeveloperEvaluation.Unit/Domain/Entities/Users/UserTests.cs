@@ -1,9 +1,9 @@
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Enums;
-using Ambev.DeveloperEvaluation.Unit.Domain.Entities.TestData;
+using Ambev.DeveloperEvaluation.Unit.Domain.Entities.Users.TestData;
 using Xunit;
 
-namespace Ambev.DeveloperEvaluation.Unit.Domain.Entities;
+namespace Ambev.DeveloperEvaluation.Unit.Domain.Entities.Users;
 
 /// <summary>
 /// Contains unit tests for the User entity class.

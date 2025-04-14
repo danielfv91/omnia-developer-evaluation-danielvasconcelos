@@ -1,6 +1,7 @@
-﻿using Serilog;
+﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
+using Serilog;
 
-namespace Ambev.DeveloperEvaluation.Application.Events;
+namespace Ambev.DeveloperEvaluation.ORM.Events;
 
 public class EventPublisher : IEventPublisher
 {

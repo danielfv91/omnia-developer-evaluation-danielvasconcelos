@@ -1,41 +1,39 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Events.Interfaces;
-using Ambev.DeveloperEvaluation.Application.Events.Sales;
+using Ambev.DeveloperEvaluation.Common.Exceptions;
+using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using MediatR;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.DeleteSale
+namespace Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
+
+public class DeleteSaleHandler : IRequestHandler<DeleteSaleCommand, bool>
 {
-    public class DeleteSaleHandler : IRequestHandler<DeleteSaleCommand, bool>
+    private readonly ISaleRepository _saleRepository;
+    private readonly IEventPublisher _eventPublisher;
+
+
+    public DeleteSaleHandler(ISaleRepository saleRepository, IEventPublisher eventPublisher)
     {
-        private readonly ISaleRepository _saleRepository;
-        private readonly IEventPublisher _eventPublisher;
+        _saleRepository = saleRepository;
+        _eventPublisher = eventPublisher;
+    }
 
-        public DeleteSaleHandler(ISaleRepository saleRepository, IEventPublisher eventPublisher)
-        {
-            _saleRepository = saleRepository;
-            _eventPublisher = eventPublisher;
-        }
+    public async Task<bool> Handle(DeleteSaleCommand request, CancellationToken cancellationToken)
+    {
+        var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken);
 
-        public async Task<bool> Handle(DeleteSaleCommand request, CancellationToken cancellationToken)
-        {
-            var existingSale = await _saleRepository.GetByIdAsync(request.Id);
+        if (sale == null)
+            throw new NotFoundException($"Sale with ID {request.Id} was not found.");
 
-            if (existingSale == null)
-                return false;
+        sale.Cancel("Deleted via API");
 
-            await _saleRepository.DeleteAsync(request.Id, cancellationToken);
+        await _saleRepository.UpdateAsync(sale, cancellationToken);
 
-            var saleCancelledEvent = new SaleCancelledEvent
-            {
-                SaleId = request.Id,
-                Reason = "Deleted via API"
-            };
+        foreach (var domainEvent in sale.DomainEvents)
+            await _eventPublisher.PublishAsync(domainEvent, cancellationToken);
 
-            await _eventPublisher.PublishAsync(saleCancelledEvent, cancellationToken);
+        sale.ClearDomainEvents();
 
-            return true;
-        }
+        return true;
     }
 }
